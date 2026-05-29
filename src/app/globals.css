@@ -8,27 +8,33 @@
 }
 
 @layer components {
-  .btn-primary  { @apply bg-green-primary text-white px-4 py-2.5 rounded-xl font-medium hover:bg-green-dark active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed; }
-  .btn-secondary{ @apply bg-beige-dark text-green-primary px-4 py-2.5 rounded-xl font-medium hover:bg-beige-border active:scale-95 transition-all; }
-  .btn-gold     { @apply bg-gold-primary text-white px-4 py-2.5 rounded-xl font-medium hover:bg-gold-dark active:scale-95 transition-all; }
-  .btn-danger   { @apply bg-red-500 text-white px-4 py-2.5 rounded-xl font-medium hover:bg-red-600 active:scale-95 transition-all; }
-  .card         { @apply bg-white rounded-2xl shadow-sm border border-beige-border p-4; }
-  .card-hover   { @apply card hover:shadow-md hover:border-green-primary/30 transition-all cursor-pointer; }
-  .input        { @apply w-full bg-beige-primary border border-beige-border rounded-xl px-4 py-2.5 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-primary/30 focus:border-green-primary transition-all; }
-  .label        { @apply block text-sm font-medium text-gray-700 mb-1.5; }
-  .badge        { @apply inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium; }
-  .badge-green  { @apply badge bg-green-subtle text-green-primary; }
-  .badge-gold   { @apply badge bg-gold-subtle text-gold-dark; }
-  .badge-red    { @apply badge bg-red-50 text-red-600; }
-  .badge-gray   { @apply badge bg-gray-100 text-gray-600; }
-  .page-header  { @apply flex items-center justify-between mb-6; }
-  .page-title   { @apply text-2xl font-bold text-green-primary; }
-  .stat-card    { @apply card flex flex-col gap-1; }
-  .stat-value   { @apply text-3xl font-black text-green-primary; }
-  .stat-label   { @apply text-sm text-gray-500; }
+  .btn-primary   { @apply bg-[#1e5a10] text-white px-4 py-2.5 rounded-xl font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed; }
+  .btn-secondary { @apply bg-[#ede7db] text-[#1e5a10] px-4 py-2.5 rounded-xl font-medium transition-all; }
+  .btn-gold      { @apply bg-[#c9a84c] text-white px-4 py-2.5 rounded-xl font-medium transition-all; }
+  .btn-danger    { @apply bg-red-500 text-white px-4 py-2.5 rounded-xl font-medium transition-all; }
+  .card          { @apply bg-white rounded-2xl shadow-sm border border-[#d8cfc3] p-4; }
+  .card-hover    { @apply bg-white rounded-2xl shadow-sm border border-[#d8cfc3] p-4 hover:shadow-md hover:border-[#1e5a10]/30 transition-all cursor-pointer; }
+  .input         { @apply w-full bg-[#f8f4ee] border border-[#d8cfc3] rounded-xl px-4 py-2.5 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#1e5a10]/30 focus:border-[#1e5a10] transition-all; }
+  .label         { @apply block text-sm font-medium text-gray-700 mb-1.5; }
+  .badge         { @apply inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium; }
+  .badge-green   { @apply inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-[#e8f5e2] text-[#1e5a10]; }
+  .badge-gold    { @apply inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-[#fdf8ec] text-[#a8872e]; }
+  .badge-red     { @apply inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-50 text-red-600; }
+  .badge-gray    { @apply inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600; }
+  .page-header   { @apply flex items-center justify-between mb-6; }
+  .page-title    { @apply text-2xl font-bold text-[#1e5a10]; }
+  .stat-card     { @apply bg-white rounded-2xl shadow-sm border border-[#d8cfc3] p-4 flex flex-col gap-1; }
+  .stat-value    { @apply text-3xl font-black text-[#1e5a10]; }
+  .stat-label    { @apply text-sm text-gray-500; }
   .scrollbar-hide { scrollbar-width: none; }
   .scrollbar-hide::-webkit-scrollbar { display: none; }
 }
 
 @keyframes shimmer { 0%{background-position:-200% 0} 100%{background-position:200% 0} }
-.skeleton { background: linear-gradient(90deg,#ede7db 25%,#f8f4ee 50%,#ede7db 75%); background-size:200% 100%; animation: shimmer 1.5s infinite; border-radius: 0.5rem; }
+.skeleton {
+  background: linear-gradient(90deg,#ede7db 25%,#f8f4ee 50%,#ede7db 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 0.5rem;
+  min-height: 1rem;
+}
