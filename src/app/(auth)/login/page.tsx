@@ -40,13 +40,13 @@ export default function LoginPage() {
               <input type="password" className="input" value={password} onChange={e => setPassword(e.target.value)} required />
             </div>
             <div className="flex justify-end">
-              <Link href="/auth/forgot-password" className="text-sm text-green-primary hover:underline">نسيت كلمة المرور؟</Link>
+              <Link href="/forgot-password" className="text-sm text-green-primary hover:underline">نسيت كلمة المرور؟</Link>
             </div>
             <button type="submit" className="btn-primary w-full" disabled={loading}>{loading ? 'جاري الدخول...' : 'دخول'}</button>
           </form>
         </div>
         <p className="text-center text-sm text-gray-500 mt-4">
-          ليس لديك حساب؟ <Link href="/auth/register" className="text-green-primary font-medium">إنشاء حساب</Link>
+          ليس لديك حساب؟ <Link href="/register" className="text-green-primary font-medium">إنشاء حساب</Link>
         </p>
       </div>
     </div>
