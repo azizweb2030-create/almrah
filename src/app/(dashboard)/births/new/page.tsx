@@ -4,26 +4,30 @@ import { useRouter } from 'next/navigation'
 import { cn } from '@/lib/utils/cn'
 import toast from 'react-hot-toast'
 
+const COLORS = ['أبيض','أسود','بني','رمادي','أحمر','مختلط']
+
 export default function NewBirthPage() {
   const router = useRouter()
   const today = new Date().toISOString().split('T')[0]
   const [momId, setMomId] = useState('')
+  const [momColor, setMomColor] = useState('')
   const [birthDate, setBirthDate] = useState(today)
-  const [notes, setNotes] = useState('')
-  const [babies, setBabies] = useState([{animal_id:'', gender:'أنثى', health:'سليم'}])
+  const [meds, setMeds] = useState<string[]>([])
+  const [babies, setBabies] = useState([{baby_id:'',color:'',gender:'أنثى',health:'سليم'}])
   const [saving, setSaving] = useState(false)
 
-  function addBaby() { setBabies(p=>[...p,{animal_id:'',gender:'أنثى',health:'سليم'}]) }
+  function addBaby() { setBabies(p=>[...p,{baby_id:'',color:'',gender:'أنثى',health:'سليم'}]) }
   function removeBaby(i:number) { if(babies.length>1) setBabies(p=>p.filter((_,idx)=>idx!==i)) }
   function updateBaby(i:number, k:string, v:string) { setBabies(p=>p.map((b,idx)=>idx===i?{...b,[k]:v}:b)) }
 
   async function handleSave(e:React.FormEvent) {
     e.preventDefault()
     if (!momId.trim()) { toast.error('رقم الأم مطلوب'); return }
-    if (babies.some(b => !b.animal_id.trim())) { toast.error('رقم المولود مطلوب'); return }
+    if (babies.some(b => !b.baby_id.trim())) { toast.error('رقم المولود مطلوب'); return }
     setSaving(true)
-    const type = babies.length===1?'مفرد':babies.length===2?'توأم':'ثلاثة'
-    const res = await fetch('/api/births',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({mom_id:momId,birth_date:birthDate,birth_type:type,notes,babies})})
+    const res = await fetch('/api/births',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
+      mom_id: momId, mom_color: momColor, birth_date: birthDate, meds, babies
+    })})
     const j = await res.json()
     if (j.error) { toast.error(j.error); setSaving(false); return }
     toast.success('✅ تم حفظ سجل الولادة')
@@ -40,7 +44,18 @@ export default function NewBirthPage() {
       <form onSubmit={handleSave} className="card space-y-5">
         <div>
           <label className="label">رقم الأم *</label>
-          <input className="input" placeholder="1001" value={momId} onChange={e=>setMomId(e.target.value)} required />
+          <input className="input" placeholder="مثال: 1001" value={momId} onChange={e=>setMomId(e.target.value)} required />
+        </div>
+        <div>
+          <label className="label">لون الأم</label>
+          <div className="flex flex-wrap gap-2">
+            {COLORS.map(c=>(
+              <button key={c} type="button" onClick={()=>setMomColor(c)}
+                className={cn('px-3 py-1.5 rounded-xl text-sm border transition-colors', momColor===c?'bg-green-primary text-white border-green-primary':'bg-white border-beige-border')}>
+                {c}
+              </button>
+            ))}
+          </div>
         </div>
         <div>
           <label className="label">تاريخ الولادة *</label>
@@ -61,13 +76,24 @@ export default function NewBirthPage() {
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="label text-xs">رقم المولود *</label>
-                    <input className="input text-sm" placeholder="2001" value={baby.animal_id} onChange={e=>updateBaby(i,'animal_id',e.target.value)} required />
+                    <input className="input text-sm" placeholder="2001" value={baby.baby_id} onChange={e=>updateBaby(i,'baby_id',e.target.value)} required />
                   </div>
                   <div>
                     <label className="label text-xs">الحالة</label>
                     <select className="input text-sm" value={baby.health} onChange={e=>updateBaby(i,'health',e.target.value)}>
                       {['سليم','مريض','ضعيف','نفوق'].map(h=><option key={h}>{h}</option>)}
                     </select>
+                  </div>
+                </div>
+                <div>
+                  <label className="label text-xs">اللون</label>
+                  <div className="flex flex-wrap gap-1.5">
+                    {COLORS.map(c=>(
+                      <button key={c} type="button" onClick={()=>updateBaby(i,'color',c)}
+                        className={cn('px-2.5 py-1 rounded-lg text-xs border transition-colors', baby.color===c?'bg-green-primary text-white border-green-primary':'bg-white border-beige-border')}>
+                        {c}
+                      </button>
+                    ))}
                   </div>
                 </div>
                 <div className="flex gap-2">
@@ -81,10 +107,6 @@ export default function NewBirthPage() {
               </div>
             ))}
           </div>
-        </div>
-        <div>
-          <label className="label">ملاحظات</label>
-          <textarea className="input resize-none" rows={2} value={notes} onChange={e=>setNotes(e.target.value)} />
         </div>
         <div className="flex gap-3">
           <button type="submit" className="btn-primary flex-1" disabled={saving}>{saving?'⏳ جاري...':'💾 حفظ'}</button>
