@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { notifyUser } from '@/lib/telegram/sender'
 
 export async function GET() {
   const supabase = await createClient()
@@ -7,13 +8,12 @@ export async function GET() {
   if (!user) return NextResponse.json({ error: 'غير مصرح' }, { status: 401 })
 
   const { data, error } = await supabase
-    .from('vet_isolation')
-    .select('*')
-    .eq('user_id', user.id)
+    .from('vet_isolation').select('*').eq('user_id', user.id)
     .order('created_at', { ascending: false })
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-  return NextResponse.json({ data: data || [] })
+  // Map status → disease for frontend compatibility
+  return NextResponse.json({ data: (data||[]).map(r => ({ ...r, disease: r.status, treatment: r.medicine })) })
 }
 
 export async function POST(req: NextRequest) {
@@ -22,9 +22,6 @@ export async function POST(req: NextRequest) {
   if (!user) return NextResponse.json({ error: 'غير مصرح' }, { status: 401 })
 
   const body = await req.json()
-  // Map from form fields to actual DB schema
-  // Form: animal_id, disease, disease_other, treatment, duration_text, start_date, severity
-  // DB: animal_id, status(disease), medicine(treatment), usage_notes(disease_other+duration_text), start_date, severity, active, daily_log
   const { data, error } = await supabase
     .from('vet_isolation')
     .insert({
@@ -34,20 +31,18 @@ export async function POST(req: NextRequest) {
       medicine: body.treatment || null,
       usage_notes: [body.disease_other, body.duration_text].filter(Boolean).join(' · ') || null,
       start_date: body.start_date || new Date().toISOString().split('T')[0],
-      severity: body.severity || 'عادية',
       active: true,
-      daily_log: [],
+      extended_log: [],
     })
-    .select()
-    .single()
+    .select().single()
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-  // Return with mapped fields for frontend compatibility
-  return NextResponse.json({
-    data: {
-      ...data,
-      disease: data.status,
-      treatment: data.medicine,
-    }
-  }, { status: 201 })
+
+  // إشعار Telegram
+  await notifyUser(supabase, user.id, 'vet_isolation',
+    `🩺 تم عزل حيوان\nالرقم: ${body.animal_id}\nالحالة: ${body.disease || body.status}\n${body.treatment ? `العلاج: ${body.treatment}` : ''}`,
+    'بيطرة'
+  )
+
+  return NextResponse.json({ data: { ...data, disease: data.status, treatment: data.medicine } }, { status: 201 })
 }
