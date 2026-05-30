@@ -14,26 +14,16 @@ export async function GET() {
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
-  // جلب المواليد بشكل منفصل كما في الكود الأصلي
   const ids = (records || []).map(r => r.id)
   let babiesMap: Record<string, any[]> = {}
   if (ids.length > 0) {
-    const { data: allBabies } = await supabase
-      .from('babies')
-      .select('*')
-      .in('record_id', ids)
+    const { data: allBabies } = await supabase.from('babies').select('*').in('record_id', ids)
     ;(allBabies || []).forEach(b => {
       if (!babiesMap[b.record_id]) babiesMap[b.record_id] = []
       babiesMap[b.record_id].push(b)
     })
   }
-
-  const data = (records || []).map(r => ({
-    ...r,
-    babies: babiesMap[r.id] || []
-  }))
-
-  return NextResponse.json({ data })
+  return NextResponse.json({ data: (records || []).map(r => ({ ...r, babies: babiesMap[r.id] || [] })) })
 }
 
 export async function POST(req: NextRequest) {
@@ -42,9 +32,8 @@ export async function POST(req: NextRequest) {
   if (!user) return NextResponse.json({ error: 'غير مصرح' }, { status: 401 })
 
   const body = await req.json()
-  const { babies, ...rest } = body
+  const { babies, in_breeding, breeding_date, ...rest } = body
 
-  // Insert birth_record بالحقول الأصلية الصحيحة
   const { data: recData, error } = await supabase
     .from('birth_records')
     .insert({
@@ -54,7 +43,8 @@ export async function POST(req: NextRequest) {
       meds: rest.meds || [],
       birth_date: rest.birth_date,
       original_birth_date: rest.birth_date,
-      in_breeding: false,
+      in_breeding: in_breeding || false,
+      breeding_date: breeding_date || null,
       hidden_from_home: false,
     })
     .select()
@@ -62,7 +52,6 @@ export async function POST(req: NextRequest) {
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
-  // Insert babies بالحقول الأصلية الصحيحة
   if (babies && babies.length > 0) {
     await supabase.from('babies').insert(
       babies.map((b: any) => ({
@@ -76,23 +65,15 @@ export async function POST(req: NextRequest) {
         stage_date: null,
       }))
     )
-
-    // تحديث عداد القطيع
     const aliveCount = babies.filter((b: any) => b.health !== 'نفوق').length
     if (aliveCount > 0) {
-      const { data: fd } = await supabase
-        .from('flock_data')
-        .select('total_sheep')
-        .eq('user_id', user.id)
-        .single()
-      
+      const { data: fd } = await supabase.from('flock_data').select('total_sheep').eq('user_id', user.id).single()
       await supabase.from('flock_data').upsert({
         user_id: user.id,
-        total_sheep: ((fd?.total_sheep || 0) + aliveCount),
+        total_sheep: (fd?.total_sheep || 0) + aliveCount,
         updated_at: new Date().toISOString()
       }, { onConflict: 'user_id' })
     }
   }
-
   return NextResponse.json({ data: { ...recData, babies: babies || [] } }, { status: 201 })
 }
