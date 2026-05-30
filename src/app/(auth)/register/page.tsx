@@ -6,7 +6,7 @@ import { createClient } from '@/lib/supabase/client'
 
 export default function RegisterPage() {
   const router = useRouter()
-  const [form, setForm] = useState({ name:'', farmName:'', email:'', password:'' })
+  const [form, setForm] = useState({ name: '', farmName: '', email: '', password: '' })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
@@ -17,7 +17,7 @@ export default function RegisterPage() {
       email: form.email, password: form.password,
       options: { data: { full_name: form.name, farm_name: form.farmName } }
     })
-    if (error) { setError('حدث خطأ، حاول مرة أخرى'); setLoading(false) }
+    if (error) { setError('حدث خطأ: ' + error.message); setLoading(false) }
     else router.push('/dashboard')
   }
 
@@ -32,15 +32,15 @@ export default function RegisterPage() {
           <h2 className="text-xl font-bold mb-6">إنشاء حساب</h2>
           {error && <div className="bg-red-50 border border-red-200 text-red-600 rounded-xl px-4 py-3 mb-4 text-sm">{error}</div>}
           <form onSubmit={handleRegister} className="space-y-4">
-            <div><label className="label">الاسم الكامل</label><input className="input" value={form.name} onChange={e => setForm(p => ({...p, name: e.target.value}))} required /></div>
-            <div><label className="label">اسم المراح</label><input className="input" value={form.farmName} onChange={e => setForm(p => ({...p, farmName: e.target.value}))} /></div>
-            <div><label className="label">البريد الإلكتروني</label><input type="email" className="input" dir="ltr" value={form.email} onChange={e => setForm(p => ({...p, email: e.target.value}))} required /></div>
-            <div><label className="label">كلمة المرور</label><input type="password" className="input" value={form.password} onChange={e => setForm(p => ({...p, password: e.target.value}))} required /></div>
+            <div><label className="label">الاسم الكامل</label><input className="input" value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} required /></div>
+            <div><label className="label">اسم المراح</label><input className="input" placeholder="اختياري" value={form.farmName} onChange={e => setForm(p => ({ ...p, farmName: e.target.value }))} /></div>
+            <div><label className="label">البريد الإلكتروني</label><input type="email" className="input" dir="ltr" value={form.email} onChange={e => setForm(p => ({ ...p, email: e.target.value }))} required /></div>
+            <div><label className="label">كلمة المرور</label><input type="password" className="input" placeholder="6 أحرف على الأقل" value={form.password} onChange={e => setForm(p => ({ ...p, password: e.target.value }))} required /></div>
             <button type="submit" className="btn-primary w-full" disabled={loading}>{loading ? 'جاري الإنشاء...' : 'إنشاء حساب'}</button>
           </form>
         </div>
         <p className="text-center text-sm text-gray-500 mt-4">
-          لديك حساب؟ <Link href="/auth/login" className="text-green-primary font-medium">تسجيل الدخول</Link>
+          لديك حساب؟ <Link href="/login" className="text-green-primary font-medium">تسجيل الدخول</Link>
         </p>
       </div>
     </div>
