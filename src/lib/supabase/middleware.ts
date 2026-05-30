@@ -19,13 +19,23 @@ export async function updateSession(request: NextRequest) {
   )
   const { data: { user } } = await supabase.auth.getUser()
   const path = request.nextUrl.pathname
-  const isAuth = path.startsWith('/auth')
-  const isPublic = path === '/' || isAuth || path.startsWith('/api') || path === '/maintenance' || path === '/offline'
-  if (!user && !isPublic) return NextResponse.redirect(new URL('/auth/login', request.url))
-  if (user && isAuth) return NextResponse.redirect(new URL('/dashboard', request.url))
+
+  // Public paths - no auth needed
+  const publicPaths = ['/login', '/register', '/forgot-password', '/maintenance', '/offline']
+  const isPublic = publicPaths.includes(path) || path.startsWith('/api') || path.startsWith('/_next')
+  
+  if (!user && !isPublic) {
+    return NextResponse.redirect(new URL('/login', request.url))
+  }
+  
+  if (user && (path === '/login' || path === '/register')) {
+    return NextResponse.redirect(new URL('/dashboard', request.url))
+  }
+  
   if (path.startsWith('/admin')) {
     const { data: p } = await supabase.from('profiles').select('role').eq('id', user?.id ?? '').single()
     if (p?.role !== 'admin') return NextResponse.redirect(new URL('/dashboard', request.url))
   }
+  
   return response
 }
