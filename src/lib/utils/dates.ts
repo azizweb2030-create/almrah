@@ -16,11 +16,20 @@ export function getMatingDate(birthDate: string | Date) {
 export function getExpectedBirthDate(matingDate: string | Date) {
   return addDays(new Date(matingDate), PREGNANCY_DAYS)
 }
-export function getAnimalStage(birthDate: string | Date) {
+// مطابق للكود الأصلي: رخل وخروف لهما مسارات مختلفة
+export function getRakhlStage(birthDate: string | Date) {
   const m = differenceInMonths(new Date(), new Date(birthDate))
   if (m < 3) return 'بهم'
   if (m < 7) return 'مفطوم'
-  return 'جاهز'
+  return 'جاهز للإنتاج'
+}
+export function getKharoofStage(birthDate: string | Date) {
+  const m = differenceInMonths(new Date(), new Date(birthDate))
+  if (m < 3) return 'بهم'
+  return 'جاهز للبيع'
+}
+export function getMonthsOld(birthDate: string | Date) {
+  return differenceInMonths(new Date(), new Date(birthDate))
 }
 export function daysUntil(d: string | Date) {
   return differenceInDays(new Date(d), new Date())
