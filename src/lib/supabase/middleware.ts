@@ -17,12 +17,21 @@ export async function updateSession(request: NextRequest) {
       },
     }
   )
-  const { data: { user } } = await supabase.auth.getUser()
-  const path = request.nextUrl.pathname
 
-  // Public paths - no auth needed
-  const publicPaths = ['/', '/login', '/register', '/forgot-password', '/maintenance', '/offline']
-  const isPublic = publicPaths.includes(path) || path.startsWith('/api') || path.startsWith('/_next')
+  const path = request.nextUrl.pathname
+  const isPublic = ['/', '/login', '/register', '/forgot-password', '/maintenance', '/offline'].includes(path)
+    || path.startsWith('/api') || path.startsWith('/_next') || path.startsWith('/favicon')
+
+  // فحص وضع الصيانة (باستثناء /admin و /api)
+  if (!path.startsWith('/admin') && !path.startsWith('/api') && path !== '/maintenance') {
+    const { data: maint } = await supabase.from('app_settings')
+      .select('value').eq('key', 'maintenance_mode').single()
+    if (maint?.value === 'true') {
+      return NextResponse.redirect(new URL('/maintenance', request.url))
+    }
+  }
+
+  const { data: { user } } = await supabase.auth.getUser()
 
   if (!user && !isPublic) {
     return NextResponse.redirect(new URL('/login', request.url))
