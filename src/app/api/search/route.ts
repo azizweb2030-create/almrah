@@ -14,8 +14,7 @@ export async function GET(req: NextRequest) {
     supabase.from('babies').select('id,baby_id,color,gender,health,stage').eq('user_id',user.id).ilike('baby_id',`%${q}%`).limit(5),
     supabase.from('rams').select('id,ram_id,name,color,dead').eq('user_id',user.id).ilike('ram_id',`%${q}%`).limit(5),
     supabase.from('deaths').select('id,animal_id,color,category,death_date').eq('user_id',user.id).ilike('animal_id',`%${q}%`).limit(5),
-    supabase.from('vet_isolation').select('id,animal_id,disease,severity,active').eq('user_id',user.id).ilike('animal_id',`%${q}%`).limit(5),
+    supabase.from('vet_isolation').select('id,animal_id,status,active').eq('user_id',user.id).ilike('animal_id',`%${q}%`).limit(5),
   ])
-
-  return NextResponse.json({ data: { births:a.data||[], babies:b.data||[], rams:c.data||[], deaths:d.data||[], vet:e.data||[] } })
+  return NextResponse.json({ data: { births:a.data||[], babies:b.data||[], rams:c.data||[], deaths:d.data||[], vet:(e.data||[]).map((v:any)=>({...v,disease:v.status})) } })
 }
