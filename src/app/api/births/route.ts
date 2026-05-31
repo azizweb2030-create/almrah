@@ -10,7 +10,6 @@ export async function GET() {
   const { data: records, error } = await supabase
     .from('birth_records').select('*').eq('user_id', user.id)
     .order('created_at', { ascending: false })
-
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
   const ids = (records || []).map(r => r.id)
@@ -70,13 +69,10 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  // إشعار Telegram
-  const msg = `🐑 ولادة جديدة!
-الأم: ${rest.mom_id} ${rest.mom_color ? `(${rest.mom_color})` : ''}
-المواليد الأحياء: ${aliveCount}
-التاريخ: ${rest.birth_date}${in_breeding ? '
-⏰ شبك التلقيح مُفعَّل' : ''}`
-  await notifyUser(supabase, user.id, 'birth', msg, 'ولادة')
+  const breedingNote = in_breeding ? ' | شبك التلقيح مفعّل' : ''
+  const msg = 'ولادة جديدة! الام: ' + rest.mom_id + (rest.mom_color ? ' (' + rest.mom_color + ')' : '') + ' | مواليد احياء: ' + aliveCount + ' | التاريخ: ' + rest.birth_date + breedingNote
+
+  await notifyUser(supabase, user.id, 'birth_' + recData.id, msg, 'ولادة')
 
   return NextResponse.json({ data: { ...recData, babies: babies || [] } }, { status: 201 })
 }
