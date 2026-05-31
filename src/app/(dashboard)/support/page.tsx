@@ -1,173 +1,206 @@
 'use client'
 import { useState, useEffect } from 'react'
-import { cn } from '@/lib/utils/cn'
 import toast from 'react-hot-toast'
 
-const STATUS_STYLE: Record<string,string> = {
-  'مفتوح':'badge-green',
-  'قيد_المعالجة':'badge-gold',
-  'محلول':'badge-gray',
-  'مغلق':'badge-gray'
+const G = '#1e5a10', BEIGE = '#f8f4ee', BDR = '#d8cfc3', BDARK = '#ede7db'
+
+const STATUS_CONFIG: Record<string,{label:string,bg:string,color:string}> = {
+  'مفتوح':       {label:'مفتوح',       bg:'#dcfce7', color:'#15803d'},
+  'قيد_المعالجة':{label:'قيد المعالجة',bg:'#fffbeb', color:'#d97706'},
+  'محلول':       {label:'محلول',       bg:'#f0fdf4', color:'#16a34a'},
+  'مغلق':        {label:'مغلق',        bg:'#f3f4f6', color:'#6b7280'},
 }
-const PRIORITIES = ['منخفض','متوسط','عالي','عاجل']
+const PRIORITIES = ['عادية','متوسطة','عالية','عاجلة']
+const CATEGORIES = ['مشكلة تقنية','اقتراح','استفسار','شكوى','أخرى']
 
 export default function SupportPage() {
   const [tickets, setTickets] = useState<any[]>([])
-  const [selected, setSelected] = useState<any>(null)
-  const [replies, setReplies] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
   const [showNew, setShowNew] = useState(false)
-  const [form, setForm] = useState({ subject:'', message:'', priority:'متوسط' })
-  const [replyText, setReplyText] = useState('')
+  const [form, setForm] = useState({ title:'', body:'', category:'استفسار', priority:'عادية' })
   const [saving, setSaving] = useState(false)
+  const [selected, setSelected] = useState<any>(null)
+  const [reply, setReply] = useState('')
+  const [replying, setReplying] = useState(false)
 
   useEffect(() => {
-    fetch('/api/support/tickets').then(r=>r.json()).then(j=>setTickets(j.data||[]))
+    fetch('/api/support').then(r=>r.json()).then(j=>{setTickets(j.data||[]);setLoading(false)})
   }, [])
 
-  async function openTicket(t: any) {
-    setSelected(t)
-    const r = await fetch(`/api/support/tickets/${t.id}/replies`)
-    const j = await r.json()
-    setReplies(j.data||[])
-  }
-
-  async function submit(e: React.FormEvent) {
-    e.preventDefault()
-    if (!form.subject.trim()||!form.message.trim()) { toast.error('يرجى ملء الحقول'); return }
+  async function submit() {
+    if (!form.title.trim() || !form.body.trim()) { toast.error('أدخل العنوان والرسالة'); return }
     setSaving(true)
-    const res = await fetch('/api/support/tickets', {
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify(form)
-    })
+    const res = await fetch('/api/support', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(form)})
     const j = await res.json()
-    if (j.error) { toast.error(j.error); setSaving(false); return }
-    setTickets(p=>[j.data,...p]); setShowNew(false); setForm({subject:'',message:'',priority:'متوسط'})
-    setSaving(false); toast.success('✅ تم إرسال التذكرة')
+    if (j.error) { toast.error(j.error) } else {
+      setTickets(p=>[j.data,...p]); setShowNew(false); setForm({title:'',body:'',category:'استفسار',priority:'عادية'})
+      toast.success('تم إرسال تذكرة الدعم ✅')
+    }
+    setSaving(false)
   }
 
   async function sendReply() {
-    if (!replyText.trim() || !selected) return
-    setSaving(true)
-    const res = await fetch(`/api/support/tickets/${selected.id}/replies`, {
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ message: replyText })
-    })
+    if (!reply.trim() || !selected) return
+    setReplying(true)
+    const res = await fetch(`/api/support/${selected.id}/replies`, {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:reply})})
     const j = await res.json()
-    setReplies(p=>[...p, j.data]); setReplyText(''); setSaving(false)
+    if (!j.error) {
+      const updated = {...selected, replies:[...(selected.replies||[]), j.data]}
+      setSelected(updated); setTickets(p=>p.map(t=>t.id===selected.id?{...t,replies:updated.replies}:t)); setReply('')
+    }
+    setReplying(false)
   }
 
-  // صفحة التذكرة المفتوحة
+  async function openTicket(t: any) {
+    const res = await fetch(`/api/support/${t.id}`).then(r=>r.json())
+    setSelected(res.data || t)
+  }
+
+  const card: React.CSSProperties = {background:'white',borderRadius:20,border:`1px solid ${BDR}`,padding:16,boxShadow:'0 1px 4px rgba(0,0,0,0.05)'}
+  const input: React.CSSProperties = {width:'100%',background:BEIGE,border:`1.5px solid ${BDR}`,borderRadius:12,padding:'11px 14px',fontFamily:'inherit',fontSize:14,outline:'none',boxSizing:'border-box' as const,color:'#111827'}
+
+  if (loading) return (
+    <div style={{display:'flex',flexDirection:'column',gap:12}}>
+      {[...Array(3)].map((_,i)=><div key={i} style={{height:80,borderRadius:20,background:'#e5e7eb',animation:'shimmer 1.5s infinite'}}/>)}
+    </div>
+  )
+
+  // تفاصيل تذكرة
   if (selected) return (
-    <div className="max-w-lg mx-auto space-y-4">
-      <div className="flex items-center gap-3">
-        <button onClick={()=>{setSelected(null);setReplies([])}} className="text-gray-500 text-sm">→ رجوع</button>
-        <h1 className="font-bold text-lg flex-1 truncate">{selected.subject}</h1>
-        <span className={cn('badge text-xs', STATUS_STYLE[selected.status]||'badge-gray')}>{selected.status}</span>
-      </div>
-
-      <div className="card">
-        <div className="flex items-center justify-between mb-2">
-          <span className="text-xs text-gray-400">{selected.ticket_number}</span>
-          <span className="text-xs text-gray-400">{new Date(selected.created_at).toLocaleDateString('ar-SA')}</span>
+    <div style={{display:'flex',flexDirection:'column',gap:14}}>
+      <button onClick={()=>setSelected(null)}
+        style={{display:'flex',alignItems:'center',gap:6,background:'none',border:'none',fontFamily:'inherit',fontSize:14,fontWeight:600,color:G,cursor:'pointer',padding:0}}>
+        ← رجوع
+      </button>
+      <div style={card}>
+        <div style={{display:'flex',alignItems:'flex-start',justifyContent:'space-between',marginBottom:12}}>
+          <div style={{flex:1}}>
+            <p style={{fontSize:16,fontWeight:800,margin:'0 0 6px'}}>{selected.title}</p>
+            <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
+              {(() => { const s=STATUS_CONFIG[selected.status]; return s ? <span style={{background:s.bg,color:s.color,padding:'2px 8px',borderRadius:100,fontSize:11,fontWeight:700}}>{s.label}</span> : null })()}
+              <span style={{background:BEIGE,color:'#6b7280',padding:'2px 8px',borderRadius:100,fontSize:11}}>{selected.category}</span>
+              <span style={{background:BEIGE,color:'#6b7280',padding:'2px 8px',borderRadius:100,fontSize:11}}>{selected.priority}</span>
+            </div>
+          </div>
         </div>
-        <p className="text-sm text-gray-700 bg-beige-primary rounded-xl p-3">{selected.message}</p>
+        <div style={{background:BEIGE,borderRadius:12,padding:14,fontSize:13,color:'#374151',lineHeight:1.7,marginBottom:12}}>
+          {selected.body}
+        </div>
+        <p style={{fontSize:11,color:'#9ca3af',margin:0}}>{selected.created_at?.split('T')[0]}</p>
       </div>
 
-      {replies.length > 0 && (
-        <div className="space-y-2">
-          {replies.map((r:any) => (
-            <div key={r.id} className={cn('flex gap-2', r.is_admin?'':'flex-row-reverse')}>
-              <div className="w-7 h-7 rounded-full bg-beige-dark flex items-center justify-center text-xs flex-shrink-0">
-                {r.is_admin?'🛡️':'👤'}
+      {/* الردود */}
+      {(selected.replies||[]).length > 0 && (
+        <div style={{display:'flex',flexDirection:'column',gap:8}}>
+          <p style={{fontSize:11,fontWeight:800,color:'#9ca3af',margin:0,textTransform:'uppercase',letterSpacing:1}}>الردود ({selected.replies.length})</p>
+          {selected.replies.map((r:any,i:number)=>(
+            <div key={r.id||i} style={{...card,background:r.is_admin?'#f0fdf4':BEIGE,borderColor:r.is_admin?`${G}33`:BDR}}>
+              <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:8}}>
+                <div style={{width:28,height:28,borderRadius:8,background:r.is_admin?G:'#6b7280',display:'flex',alignItems:'center',justifyContent:'center',fontSize:12,color:'white',fontWeight:700,flexShrink:0}}>
+                  {r.is_admin?'A':'أ'}
+                </div>
+                <span style={{fontSize:12,fontWeight:700,color:r.is_admin?G:'#374151'}}>{r.is_admin?'فريق المراح':'أنت'}</span>
+                <span style={{fontSize:11,color:'#9ca3af',marginRight:'auto'}}>{r.created_at?.split('T')[0]}</span>
               </div>
-              <div className={cn('flex-1 max-w-xs px-3 py-2 rounded-2xl text-sm', r.is_admin?'bg-green-subtle text-green-primary':'bg-beige-primary text-gray-700')}>
-                {r.message}
-                <p className="text-[10px] opacity-60 mt-1">{new Date(r.created_at).toLocaleTimeString('ar-SA', {hour:'2-digit',minute:'2-digit'})}</p>
-              </div>
+              <p style={{margin:0,fontSize:13,color:'#374151',lineHeight:1.6}}>{r.message}</p>
             </div>
           ))}
         </div>
       )}
 
-      {selected.status !== 'مغلق' && selected.status !== 'محلول' && (
-        <div className="card">
-          <textarea className="input resize-none mb-3" rows={3}
-            placeholder="اكتب ردك..." value={replyText} onChange={e=>setReplyText(e.target.value)} />
-          <button onClick={sendReply} disabled={saving||!replyText.trim()} className="btn-primary w-full text-sm">
-            {saving?'⏳...':'📤 إرسال'}
+      {/* إضافة رد */}
+      {selected.status !== 'مغلق' && (
+        <div style={card}>
+          <p style={{fontSize:12,fontWeight:700,color:'#6b7280',margin:'0 0 8px'}}>أضف رداً</p>
+          <textarea value={reply} onChange={e=>setReply(e.target.value)} rows={3} placeholder="اكتب ردك هنا..."
+            style={{...input,resize:'none' as const,marginBottom:8}} />
+          <button onClick={sendReply} disabled={replying||!reply.trim()}
+            style={{background:G,color:'white',border:'none',borderRadius:12,padding:'11px 20px',fontFamily:'inherit',fontSize:14,fontWeight:700,cursor:'pointer',opacity:replying||!reply.trim()?0.6:1}}>
+            {replying?'⏳ جاري الإرسال...':'📤 إرسال'}
           </button>
         </div>
       )}
     </div>
   )
 
-  // قائمة التذاكر
   return (
-    <div className="space-y-4">
-      <div className="page-header">
-        <h1 className="page-title">🎫 الدعم الفني</h1>
-        <button onClick={()=>setShowNew(p=>!p)} className="btn-primary text-sm">
-          {showNew?'إلغاء':'＋ تذكرة جديدة'}
+    <div style={{display:'flex',flexDirection:'column',gap:16}}>
+
+      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+        <div>
+          <h1 style={{fontSize:22,fontWeight:900,color:G,margin:0}}>الدعم الفني</h1>
+          <p style={{fontSize:12,color:'#9ca3af',margin:'3px 0 0'}}>{tickets.length} تذكرة</p>
+        </div>
+        <button onClick={()=>setShowNew(p=>!p)}
+          style={{background:showNew?BDARK:G,color:showNew?'#374151':'white',border:'none',borderRadius:14,padding:'10px 16px',fontFamily:'inherit',fontSize:14,fontWeight:700,cursor:'pointer'}}>
+          {showNew?'إلغاء':'＋ تذكرة'}
         </button>
       </div>
 
+      {/* نموذج تذكرة جديدة */}
       {showNew && (
-        <form onSubmit={submit} className="card space-y-4">
-          <h2 className="font-bold text-sm">تذكرة دعم جديدة</h2>
-          <div>
-            <label className="label">الموضوع *</label>
-            <input className="input" placeholder="وصف مختصر للمشكلة..." value={form.subject}
-              onChange={e=>setForm(p=>({...p,subject:e.target.value}))} required />
-          </div>
-          <div>
-            <label className="label">الأولوية</label>
-            <div className="flex gap-2 flex-wrap">
-              {PRIORITIES.map(p=>(
-                <button key={p} type="button" onClick={()=>setForm(prev=>({...prev,priority:p}))}
-                  className={cn('px-3 py-1.5 rounded-xl text-xs border transition-colors',
-                    form.priority===p?'bg-green-primary text-white':'bg-white border-beige-border')}>
-                  {p}
-                </button>
-              ))}
+        <div style={{...card,border:`2px solid ${G}`}}>
+          <p style={{fontSize:14,fontWeight:800,color:G,margin:'0 0 14px'}}>تذكرة دعم جديدة</p>
+          <div style={{display:'flex',flexDirection:'column',gap:12}}>
+            <div>
+              <label style={{display:'block',fontSize:12,fontWeight:700,color:'#6b7280',marginBottom:6}}>العنوان *</label>
+              <input style={input} placeholder="وصف مختصر للمشكلة أو الاستفسار" value={form.title} onChange={e=>setForm(p=>({...p,title:e.target.value}))} />
             </div>
+            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}}>
+              <div>
+                <label style={{display:'block',fontSize:12,fontWeight:700,color:'#6b7280',marginBottom:6}}>التصنيف</label>
+                <select style={input} value={form.category} onChange={e=>setForm(p=>({...p,category:e.target.value}))}>
+                  {CATEGORIES.map(c=><option key={c}>{c}</option>)}
+                </select>
+              </div>
+              <div>
+                <label style={{display:'block',fontSize:12,fontWeight:700,color:'#6b7280',marginBottom:6}}>الأولوية</label>
+                <select style={input} value={form.priority} onChange={e=>setForm(p=>({...p,priority:e.target.value}))}>
+                  {PRIORITIES.map(p=><option key={p}>{p}</option>)}
+                </select>
+              </div>
+            </div>
+            <div>
+              <label style={{display:'block',fontSize:12,fontWeight:700,color:'#6b7280',marginBottom:6}}>التفاصيل *</label>
+              <textarea rows={4} style={{...input,resize:'none' as const}} placeholder="اشرح مشكلتك أو استفسارك بالتفصيل..." value={form.body} onChange={e=>setForm(p=>({...p,body:e.target.value}))} />
+            </div>
+            <button onClick={submit} disabled={saving}
+              style={{background:G,color:'white',border:'none',borderRadius:12,padding:'13px',fontFamily:'inherit',fontSize:14,fontWeight:700,cursor:'pointer',opacity:saving?0.7:1}}>
+              {saving?'⏳ جاري الإرسال...':'📤 إرسال التذكرة'}
+            </button>
           </div>
-          <div>
-            <label className="label">التفاصيل *</label>
-            <textarea className="input resize-none" rows={4}
-              placeholder="اشرح المشكلة بالتفصيل..." value={form.message}
-              onChange={e=>setForm(p=>({...p,message:e.target.value}))} required />
-          </div>
-          <div className="flex gap-3">
-            <button type="submit" className="btn-primary flex-1" disabled={saving}>{saving?'⏳...':'📤 إرسال'}</button>
-            <button type="button" onClick={()=>setShowNew(false)} className="btn-secondary px-5">إلغاء</button>
-          </div>
-        </form>
+        </div>
       )}
 
-      {tickets.length === 0 ? (
-        <div className="card text-center py-16">
-          <div className="text-5xl mb-3">🎫</div>
-          <p className="text-gray-500">لا توجد تذاكر</p>
-          <p className="text-xs text-gray-400 mt-1">فريق الدعم هنا لمساعدتك</p>
+      {/* قائمة التذاكر */}
+      {tickets.length===0 ? (
+        <div style={{...card,textAlign:'center',padding:'48px 20px'}}>
+          <p style={{fontSize:40,margin:'0 0 12px'}}>🎫</p>
+          <p style={{fontWeight:700,margin:'0 0 4px'}}>لا تذاكر مسجّلة</p>
+          <p style={{fontSize:12,color:'#9ca3af',margin:0}}>اضغط + لفتح تذكرة دعم جديدة</p>
         </div>
       ) : (
-        <div className="space-y-2">
-          {tickets.map((t:any) => (
-            <button key={t.id} onClick={()=>openTicket(t)} className="w-full card-hover text-right">
-              <div className="flex items-start justify-between gap-3">
-                <div className="flex-1 min-w-0">
-                  <p className="font-medium text-sm truncate">{t.subject}</p>
-                  <div className="flex items-center gap-2 mt-1 flex-wrap">
-                    <span className="text-xs text-gray-400">{t.ticket_number}</span>
-                    <span className="text-xs text-gray-400">·</span>
-                    <span className="text-xs text-gray-400">{new Date(t.created_at).toLocaleDateString('ar-SA')}</span>
-                    {t.priority !== 'متوسط' && <span className="text-xs text-amber-600">· {t.priority}</span>}
+        <div style={{display:'flex',flexDirection:'column',gap:8}}>
+          {tickets.map((t:any)=>{
+            const s = STATUS_CONFIG[t.status]||STATUS_CONFIG['مفتوح']
+            return (
+              <button key={t.id} onClick={()=>openTicket(t)}
+                style={{...card,display:'flex',alignItems:'center',gap:12,textAlign:'right',width:'100%',cursor:'pointer',background:'white'}}>
+                <div style={{width:40,height:40,borderRadius:11,background:s.bg,display:'flex',alignItems:'center',justifyContent:'center',fontSize:18,flexShrink:0}}>🎫</div>
+                <div style={{flex:1,minWidth:0}}>
+                  <div style={{display:'flex',alignItems:'center',gap:6,marginBottom:3}}>
+                    <span style={{fontSize:14,fontWeight:700,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{t.title}</span>
+                  </div>
+                  <div style={{display:'flex',gap:6}}>
+                    <span style={{background:s.bg,color:s.color,padding:'1px 7px',borderRadius:100,fontSize:10,fontWeight:700}}>{s.label}</span>
+                    <span style={{fontSize:11,color:'#9ca3af'}}>{t.created_at?.split('T')[0]}</span>
+                    {(t.replies?.length||0)>0 && <span style={{fontSize:11,color:'#6b7280'}}>💬 {t.replies.length}</span>}
                   </div>
                 </div>
-                <span className={cn('badge text-xs flex-shrink-0', STATUS_STYLE[t.status]||'badge-gray')}>{t.status}</span>
-              </div>
-            </button>
-          ))}
+                <span style={{color:'#d1d5db',fontSize:16,flexShrink:0}}>←</span>
+              </button>
+            )
+          })}
         </div>
       )}
     </div>
