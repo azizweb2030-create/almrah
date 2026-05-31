@@ -1,12 +1,16 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  typescript: { ignoreBuildErrors: true },
-  eslint: { ignoreDuringBuilds: true },
   images: {
     remotePatterns: [{ protocol: 'https', hostname: '*.supabase.co' }]
   },
   experimental: {
-    serverActions: { allowedOrigins: ['*'] }
+    serverActions: {
+      allowedOrigins: [
+        'git-main-aziz-web.vercel.app',
+        'localhost:3000',
+        'localhost:3001',
+      ]
+    }
   },
   async headers() {
     return [
@@ -16,6 +20,8 @@ const nextConfig = {
           { key: 'X-Content-Type-Options', value: 'nosniff' },
           { key: 'X-Frame-Options', value: 'DENY' },
           { key: 'X-XSS-Protection', value: '1; mode=block' },
+          { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
+          { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=()' },
         ],
       },
     ]
