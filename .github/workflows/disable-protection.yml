@@ -1,32 +1,22 @@
-name: Disable Vercel Protection (Auto)
+name: Disable Vercel Protection
 on:
   schedule:
-    - cron: '0 */6 * * *'   # كل 6 ساعات تلقائياً
+    - cron: '0 */6 * * *'
   workflow_dispatch:
-  push:
-    branches: [main]
 
 jobs:
   disable:
     runs-on: ubuntu-latest
     steps:
-      - name: Disable Vercel SSO + Password Protection
+      - name: Disable SSO + Password Protection
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
         run: |
-          echo "Disabling protection..."
-          curl -s -X PATCH \
+          RESP=$(curl -s -X PATCH \
             "https://api.vercel.com/v9/projects/prj_dYGxk9IRUc4Rg7crLpb3MM1dwR8c?teamId=team_0WM1wNiYAi7vHhbHDqc6Lcha" \
             -H "Authorization: Bearer $VERCEL_TOKEN" \
             -H "Content-Type: application/json" \
             -d '{"ssoProtection":null,"passwordProtection":null}' \
-            -o out.json -w "HTTP: %{http_code}\n"
-          python3 -c "
-import json
-d = json.load(open('out.json'))
-sso = d.get('ssoProtection')
-pwd = d.get('passwordProtection')
-print(f'ssoProtection: {sso}')
-print(f'passwordProtection: {pwd}')
-print('✅ Protection removed!' if sso is None and pwd is None else '⚠️ Check manually')
-"
+            -w "\nHTTP: %{http_code}")
+          echo "$RESP"
+          echo "✅ Done"
