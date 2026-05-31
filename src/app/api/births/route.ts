@@ -56,7 +56,7 @@ export async function POST(req: NextRequest) {
       babies.map((b: any) => ({
         record_id: recData.id, user_id: user.id,
         baby_id: b.baby_id || '', color: b.color || '',
-        gender: b.gender || 'أنثى', health: b.health || 'سليم',
+        gender: b.gender || 'رخل', health: b.health || 'سليم',
         stage: 'بهم', stage_date: new Date().toISOString()
       }))
     )
@@ -71,7 +71,11 @@ export async function POST(req: NextRequest) {
   }
 
   // إشعار Telegram
-  const msg = `🐑 ولادة جديدة!\nالأم: ${rest.mom_id} ${rest.mom_color ? `(${rest.mom_color})` : ''}\nالمواليد الأحياء: ${aliveCount}\nالتاريخ: ${rest.birth_date}${in_breeding ? '\n⏰ شبك التلقيح مُفعَّل' : ''}`
+  const msg = `🐑 ولادة جديدة!
+الأم: ${rest.mom_id} ${rest.mom_color ? `(${rest.mom_color})` : ''}
+المواليد الأحياء: ${aliveCount}
+التاريخ: ${rest.birth_date}${in_breeding ? '
+⏰ شبك التلقيح مُفعَّل' : ''}`
   await notifyUser(supabase, user.id, 'birth', msg, 'ولادة')
 
   return NextResponse.json({ data: { ...recData, babies: babies || [] } }, { status: 201 })
