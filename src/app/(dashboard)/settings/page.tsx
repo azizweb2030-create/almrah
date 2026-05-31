@@ -89,7 +89,7 @@ export default function SettingsPage() {
     router.push('/login')
   }
 
-  if (loading) return <div style={{ display:'flex', flexDirection:'column', gap:16 }}>{[...Array(3)].map((_,i)=><div key={i} className="skeleton" style={{ height:100, borderRadius:20 }}/>)}</div>
+  if (loading) return <div style={{ display:'flex', flexDirection:'column', gap:16 }}>{[...Array(3)].map((_,i)=><div key={i} style={{ height:100, borderRadius:20 }}/>)}</div>
 
   return (
     <div style={{ maxWidth:480, margin:'0 auto' }}>
