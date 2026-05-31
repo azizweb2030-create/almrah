@@ -1,25 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 
-const SYSTEM_PROMPT = `أنت مساعد منصة "المراح" الذكي — منصة إدارة تربية الأغنام والمواشي.
-مهمتك الوحيدة: إرشاد المستخدمين وشرح كيفية استخدام النظام بالعربية فقط.
+const SYSTEM_PROMPT = `أنت مساعد منصة "المراح" الذكي لإدارة تربية الأغنام والمواشي.
+مهمتك: إرشاد المستخدمين بالعربية فقط وشرح كيفية استخدام النظام.
 
-أقسام النظام:
-- الرئيسية: إحصائيات القطيع (إجمالي، منتجة، شبك التلقيح، بهم، رخال، خرفان، نفوق)
-- تسجيل الولادات: إضافة سجل ولادة جديد مع بيانات الأم ومواليدها
-- شبك التلقيح: الأم تُضاف بعد 15 يوم من الولادة، الحمل 150 يوم
-- النفوق: يُخصم تلقائياً من الإجمالي
-- البيطرة: العزل والمتابعة اليومية
-- التقارير: رسوم بيانية وتصدير PDF
-- البحث الموحد: أيقونة البحث في الأعلى
+أقسام النظام: الرئيسية، الولادات، شبك التلقيح (15 يوم بعد الولادة، حمل 150 يوم)،
+النفوق (خصم تلقائي)، البيطرة (عزل ومتابعة)، التقارير (PDF)، البحث الموحد.
 
-مراحل المواليد:
-- البهم: 0-3 أشهر
-- مفطومة: 3-7 أشهر (رخل فقط)
-- جاهز للإنتاج: 7+ أشهر (يُضاف للإجمالي تلقائياً)
-- جاهز للبيع: 3+ أشهر (خروف)
+مراحل المواليد: بهم (0-3 شهر)، مفطوم (3-7 شهر للرخل)، جاهز للإنتاج (7+ شهر يُضاف للإجمالي)، جاهز للبيع (3+ شهر للخروف).
 
-قواعد: تحدث بالعربية فقط، ردودك مختصرة وواضحة، لا تكشف معلومات تقنية.`
+قواعد: عربية فقط، ردود مختصرة، لا معلومات تقنية.`
 
 export async function POST(req: NextRequest) {
   try {
@@ -30,10 +20,10 @@ export async function POST(req: NextRequest) {
     const { message, messages } = await req.json()
     if (!message?.trim()) return NextResponse.json({ error: 'الرسالة فارغة' }, { status: 400 })
 
-    // فحص حد التوكنات
+    // فحص التوكنات
     const { data: profile } = await supabase
       .from('profiles')
-      .select('ai_tokens_used, ai_tokens_limit, economy_mode')
+      .select('ai_tokens_used, ai_tokens_limit')
       .eq('user_id', user.id)
       .single()
 
@@ -44,31 +34,25 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'تجاوزت حد التوكنات المسموح به.' }, { status: 429 })
     }
 
-    // بناء تاريخ المحادثة — Anthropic تشترط: يبدأ بـ user، ولا رسالتان متتاليتان بنفس الدور
-    const rawHistory: { role: 'user' | 'assistant'; content: string }[] = (messages || [])
-      .filter((m: any) => m.role === 'user' || m.role === 'assistant')
-      .map((m: any) => ({ role: m.role as 'user' | 'assistant', content: String(m.content || '') }))
-      .filter((m: { role: 'user' | 'assistant'; content: string }) => m.content.trim().length > 0)
+    // بناء المحادثة — Anthropic تشترط أن تبدأ بـ user
+    let history = ((messages || []) as { role: string; content: string }[])
+      .filter(m => (m.role === 'user' || m.role === 'assistant') && String(m.content || '').trim())
+      .map(m => ({ role: m.role as 'user' | 'assistant', content: String(m.content) }))
 
-    // إزالة الرسائل الأولى من نوع assistant (API لا تقبلها في البداية)
-    let trimmedHistory = rawHistory
-    while (trimmedHistory.length > 0 && trimmedHistory[0].role === 'assistant') {
-      trimmedHistory = trimmedHistory.slice(1)
+    // حذف الرسائل الأولى من نوع assistant
+    while (history.length > 0 && history[0].role === 'assistant') {
+      history = history.slice(1)
     }
 
-    // الاحتفاظ بآخر 10 رسائل فقط لتوفير التوكنات
-    trimmedHistory = trimmedHistory.slice(-10)
+    // آخر 10 رسائل فقط
+    history = history.slice(-10)
 
-    // إضافة رسالة المستخدم الحالية
-    const finalMessages = [...trimmedHistory, { role: 'user' as const, content: message.trim() }]
-
-    const maxTokens = profile?.economy_mode ? 400 : 800
+    const finalMessages = [...history, { role: 'user' as const, content: message.trim() }]
 
     const apiKey = process.env.ANTHROPIC_API_KEY
-    if (!apiKey) {
-      return NextResponse.json({ error: 'مفتاح API غير مُهيَّأ' }, { status: 500 })
-    }
+    if (!apiKey) return NextResponse.json({ error: 'مفتاح API غير موجود' }, { status: 500 })
 
+    // ✅ موديل مضمون الصحة
     const res = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
@@ -77,8 +61,8 @@ export async function POST(req: NextRequest) {
         'anthropic-version': '2023-06-01'
       },
       body: JSON.stringify({
-        model: 'claude-haiku-4-5-20251001',
-        max_tokens: maxTokens,
+        model: 'claude-3-5-haiku-20241022',
+        max_tokens: 800,
         system: SYSTEM_PROMPT,
         messages: finalMessages
       })
@@ -86,25 +70,26 @@ export async function POST(req: NextRequest) {
 
     if (!res.ok) {
       const errBody = await res.json().catch(() => ({}))
-      console.error('[AI/chat] Anthropic error:', res.status, JSON.stringify(errBody))
+      console.error('[AI] Error:', res.status, JSON.stringify(errBody))
       return NextResponse.json({
-        error: `فشل الاتصال بالمساعد (خطأ ${res.status})، حاول مرة أخرى`
+        error: `خطأ ${res.status}: ${(errBody as any)?.error?.message || 'حاول مرة أخرى'}`
       }, { status: 500 })
     }
 
     const d = await res.json()
-    const text = d.content?.[0]?.text || 'لم أتمكن من توليد رد، حاول مرة أخرى'
+    const text = d.content?.[0]?.text || 'لم أتمكن من توليد رد'
     const tokens = (d.usage?.input_tokens || 0) + (d.usage?.output_tokens || 0)
 
-    if (tokens > 0) {
-      await supabase.from('profiles').update({
-        ai_tokens_used: tokensUsed + tokens
-      }).eq('user_id', user.id)
+    if (tokens > 0 && profile) {
+      await supabase.from('profiles')
+        .update({ ai_tokens_used: tokensUsed + tokens })
+        .eq('user_id', user.id)
     }
 
     return NextResponse.json({ response: text, tokens })
-  } catch (err) {
-    console.error('[AI/chat] Unexpected error:', err)
-    return NextResponse.json({ error: 'حدث خطأ غير متوقع، حاول مرة أخرى' }, { status: 500 })
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : 'خطأ غير معروف'
+    console.error('[AI] Catch:', msg)
+    return NextResponse.json({ error: msg }, { status: 500 })
   }
 }
