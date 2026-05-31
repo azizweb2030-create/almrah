@@ -1,5 +1,9 @@
-name: Disable Protection + Test Telegram
+name: Ops - Disable Protection + Setup Telegram
 on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/disable-protection.yml'
   schedule:
     - cron: '0 */6 * * *'
   workflow_dispatch:
@@ -12,32 +16,38 @@ jobs:
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
         run: |
-          curl -s -X PATCH \
+          RESP=$(curl -s -X PATCH \
             "https://api.vercel.com/v9/projects/prj_dYGxk9IRUc4Rg7crLpb3MM1dwR8c?teamId=team_0WM1wNiYAi7vHhbHDqc6Lcha" \
             -H "Authorization: Bearer $VERCEL_TOKEN" \
             -H "Content-Type: application/json" \
             -d '{"ssoProtection":null,"passwordProtection":null}' \
-            -w "HTTP: %{http_code}\n"
+            -w "HTTP:%{http_code}")
+          echo "$RESP"
+          echo "✅ Protection disabled"
 
       - name: List Vercel Env Vars
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
         run: |
-          echo "=== Vercel Env Keys ==="
+          echo "=== Existing Env Vars ==="
           curl -s \
             "https://api.vercel.com/v10/projects/prj_dYGxk9IRUc4Rg7crLpb3MM1dwR8c/env?teamId=team_0WM1wNiYAi7vHhbHDqc6Lcha" \
-            -H "Authorization: Bearer $VERCEL_TOKEN" | \
-            python3 -c "
+            -H "Authorization: Bearer $VERCEL_TOKEN" | python3 -c "
 import sys,json
 d=json.load(sys.stdin)
-for e in d.get('envs',[]):
-    print(e['key'])
+keys=[e['key'] for e in d.get('envs',[])]
+print('Found:', keys)
+has_tg='TELEGRAM_BOT_TOKEN' in keys
+print('TELEGRAM_BOT_TOKEN:', 'YES' if has_tg else 'MISSING')
 "
 
       - name: Test Telegram Worker
         run: |
-          echo "Testing Worker..."
+          echo "Testing Cloudflare Worker..."
           curl -s -X POST "https://almrah-telegram.azizweb2030.workers.dev" \
             -H "Content-Type: application/json" \
-            -d '{"chat_id":"650468940","text":"✅ المراح V2 - تم الاتصال بنجاح!","parse_mode":"HTML"}' \
-            -w "\nHTTP: %{http_code}\n" --max-time 15
+            -d '{"chat_id":"650468940","text":"<b>المراح V2</b>\n\nتم تفعيل الاتصال بنجاح! ✅","parse_mode":"HTML"}' \
+            -w "\nHTTP: %{http_code}" \
+            --max-time 15
+          echo ""
+          echo "Done"
