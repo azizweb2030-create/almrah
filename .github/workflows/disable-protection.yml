@@ -15,15 +15,21 @@ jobs:
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
         run: |
-          curl -s -X PATCH "https://api.vercel.com/v9/projects/prj_dYGxk9IRUc4Rg7crLpb3MM1dwR8c?teamId=team_0WM1wNiYAi7vHhbHDqc6Lcha" -H "Authorization: Bearer $VERCEL_TOKEN" -H "Content-Type: application/json" -d '{"ssoProtection":null,"passwordProtection":null}' -w "HTTP:%{http_code}" && echo " Done"
+          curl -s -X PATCH "https://api.vercel.com/v9/projects/prj_dYGxk9IRUc4Rg7crLpb3MM1dwR8c?teamId=team_0WM1wNiYAi7vHhbHDqc6Lcha" -H "Authorization: Bearer $VERCEL_TOKEN" -H "Content-Type: application/json" -d '{"ssoProtection":null,"passwordProtection":null}' -w "HTTP:%{http_code}"
 
-      - name: Check Telegram Token in Vercel
+      - name: Check and Report Telegram
+        id: tg_check
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
         run: |
           ENVS=$(curl -s "https://api.vercel.com/v10/projects/prj_dYGxk9IRUc4Rg7crLpb3MM1dwR8c/env?teamId=team_0WM1wNiYAi7vHhbHDqc6Lcha" -H "Authorization: Bearer $VERCEL_TOKEN")
-          echo "$ENVS" | grep -o '"key":"[^"]*"' | grep -i telegram && echo "TELEGRAM_BOT_TOKEN: FOUND" || echo "TELEGRAM_BOT_TOKEN: MISSING"
-
-      - name: Test Telegram Cloudflare Worker
-        run: |
-          curl -s -X POST https://almrah-telegram.azizweb2030.workers.dev -H "Content-Type: application/json" -d '{"chat_id":"650468940","text":"المراح V2 test","parse_mode":"HTML"}' -w "\nHTTP:%{http_code}" --max-time 15
+          HAS_TG=$(echo "$ENVS" | grep -c "TELEGRAM_BOT_TOKEN" || true)
+          if [ "$HAS_TG" -gt 0 ]; then
+            echo "TELEGRAM_STATUS=FOUND" >> $GITHUB_OUTPUT
+            echo "TELEGRAM_BOT_TOKEN: FOUND in Vercel"
+          else
+            echo "TELEGRAM_STATUS=MISSING" >> $GITHUB_OUTPUT
+            echo "TELEGRAM_BOT_TOKEN: MISSING from Vercel"
+          fi
+          TG_TEST=$(curl -s -X POST https://almrah-telegram.azizweb2030.workers.dev -H "Content-Type: application/json" -d '{"chat_id":"650468940","text":"المراح V2 - تم الاتصال بنجاح ✅","parse_mode":"HTML"}' -w "HTTP:%{http_code}" --max-time 15)
+          echo "Worker test: $TG_TEST"
