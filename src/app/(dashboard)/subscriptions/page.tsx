@@ -7,17 +7,13 @@ const GSUBT = '#e8f5e2', BEIGE = '#f8f4ee', BDR = '#d8cfc3'
 
 export default function SubscriptionsPage() {
   const [subs, setSubs] = useState<any[]>([])
-  const [profile, setProfile] = useState<any>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    Promise.all([
-      fetch('/api/subscriptions').then(r=>r.json()),
-      fetch('/api/profile').then(r=>r.json()),
-    ]).then(([s,p]) => {
-      setSubs(s.data||[]); setProfile(p.data)
-      setLoading(false)
-    })
+    fetch('/api/subscriptions')
+      .then(r => r.json())
+      .then(s => { setSubs(s.data || []); setLoading(false) })
+      .catch(() => setLoading(false))
   }, [])
 
   const activeSub = subs.find(s => s.status === 'active')
@@ -26,9 +22,11 @@ export default function SubscriptionsPage() {
 
   const card: React.CSSProperties = {background:'white',borderRadius:20,border:`1px solid ${BDR}`,padding:18,boxShadow:'0 1px 4px rgba(0,0,0,0.05)'}
 
+  const handleContact = () => toast('تواصل معنا على تيليجرام @almrah_support', { icon: '💬' })
+
   if (loading) return (
     <div style={{display:'flex',flexDirection:'column',gap:12}}>
-      {[...Array(3)].map((_,i)=><div key={i} style={{height:100,borderRadius:20,background:'#e5e7eb',animation:'shimmer 1.5s infinite'}}/>)}
+      {[...Array(3)].map((_,i)=><div key={i} style={{height:100,borderRadius:20,background:'#e5e7eb'}}/>)}
     </div>
   )
 
@@ -72,7 +70,7 @@ export default function SubscriptionsPage() {
         <div style={{display:'flex',flexDirection:'column',gap:10}}>
 
           {/* شهري */}
-          <div style={{...card,border:`2px solid ${BDR}`,position:'relative',overflow:'hidden'}}>
+          <div style={{...card,border:`2px solid ${BDR}`,position:'relative'}}>
             <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:12}}>
               <div>
                 <p style={{margin:'0 0 3px',fontSize:16,fontWeight:900}}>الخطة الشهرية</p>
@@ -88,14 +86,14 @@ export default function SubscriptionsPage() {
                 <p key={f} style={{margin:0,fontSize:12,color:'#374151'}}>{f}</p>
               ))}
             </div>
-            <button onClick={()=>toast('تواصل معنا على تيليجرام @almrah_support')}
+            <button onClick={handleContact}
               style={{width:'100%',background:G,color:'white',border:'none',borderRadius:12,padding:'12px',fontFamily:'inherit',fontSize:14,fontWeight:700,cursor:'pointer'}}>
               اشترك الآن
             </button>
           </div>
 
           {/* دائم */}
-          <div style={{...card,border:`2px solid ${GOLD}`,position:'relative',overflow:'hidden',background:`linear-gradient(135deg,white,${GOLDS})`}}>
+          <div style={{...card,border:`2px solid ${GOLD}`,position:'relative',background:`linear-gradient(135deg,white,${GOLDS})`}}>
             <div style={{position:'absolute',top:12,left:12,background:GOLD,color:'white',padding:'3px 10px',borderRadius:100,fontSize:11,fontWeight:700}}>
               الأفضل قيمة ⭐
             </div>
@@ -114,7 +112,7 @@ export default function SubscriptionsPage() {
                 <p key={f} style={{margin:0,fontSize:12,color:'#374151'}}>{f}</p>
               ))}
             </div>
-            <button onClick={()=>toast('تواصل معنا على تيليجرام @almrah_support')}
+            <button onClick={handleContact}
               style={{width:'100%',background:`linear-gradient(135deg,${GOLDD},${GOLD})`,color:'white',border:'none',borderRadius:12,padding:'12px',fontFamily:'inherit',fontSize:14,fontWeight:700,cursor:'pointer',boxShadow:`0 4px 14px ${GOLD}55`}}>
               اشترك مدى الحياة
             </button>
