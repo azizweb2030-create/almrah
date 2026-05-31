@@ -6,10 +6,12 @@ export async function POST() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'غير مصرح' }, { status: 401 })
 
-  // تحديث المراحل
+  // تحديث مراحل المواليد
   await supabase.rpc('update_baby_stages')
   // تحقق من تلقيح الرخال
   await supabase.rpc('check_breed_ask_notifications')
+  // تحقق من إشعارات البيطرة
+  await supabase.rpc('check_vet_notifications')
 
   return NextResponse.json({ success: true })
 }
