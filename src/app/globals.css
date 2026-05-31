@@ -2,39 +2,114 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  --green: #1e5a10;
+  --green-dark: #163d0b;
+  --green-subtle: #e8f5e2;
+  --gold: #c9a84c;
+  --gold-dark: #a8872e;
+  --gold-subtle: #fdf8ec;
+  --beige: #f8f4ee;
+  --beige-dark: #ede7db;
+  --border: #d8cfc3;
+}
+
 @layer base {
   * { box-sizing: border-box; }
   body, input, select, textarea, button { font-family: 'Tajawal', sans-serif; }
+  body { background-color: var(--beige); }
 }
 
 @layer components {
-  .btn-primary   { @apply bg-[#1e5a10] text-white px-4 py-2.5 rounded-xl font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed; }
-  .btn-secondary { @apply bg-[#ede7db] text-[#1e5a10] px-4 py-2.5 rounded-xl font-medium transition-all; }
-  .btn-gold      { @apply bg-[#c9a84c] text-white px-4 py-2.5 rounded-xl font-medium transition-all; }
-  .btn-danger    { @apply bg-red-500 text-white px-4 py-2.5 rounded-xl font-medium transition-all; }
-  .card          { @apply bg-white rounded-2xl shadow-sm border border-[#d8cfc3] p-4; }
-  .card-hover    { @apply bg-white rounded-2xl shadow-sm border border-[#d8cfc3] p-4 hover:shadow-md hover:border-[#1e5a10]/30 transition-all cursor-pointer; }
-  .input         { @apply w-full bg-[#f8f4ee] border border-[#d8cfc3] rounded-xl px-4 py-2.5 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#1e5a10]/30 focus:border-[#1e5a10] transition-all; }
-  .label         { @apply block text-sm font-medium text-gray-700 mb-1.5; }
-  .badge         { @apply inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium; }
-  .badge-green   { @apply inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-[#e8f5e2] text-[#1e5a10]; }
-  .badge-gold    { @apply inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-[#fdf8ec] text-[#a8872e]; }
-  .badge-red     { @apply inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-50 text-red-600; }
-  .badge-gray    { @apply inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600; }
-  .page-header   { @apply flex items-center justify-between mb-6; }
-  .page-title    { @apply text-2xl font-bold text-[#1e5a10]; }
-  .stat-card     { @apply bg-white rounded-2xl shadow-sm border border-[#d8cfc3] p-4 flex flex-col gap-1; }
-  .stat-value    { @apply text-3xl font-black text-[#1e5a10]; }
-  .stat-label    { @apply text-sm text-gray-500; }
+  /* Buttons */
+  .btn-primary {
+    @apply px-4 py-2.5 rounded-xl font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed;
+    background-color: var(--green);
+    color: white;
+  }
+  .btn-primary:hover:not(:disabled) { background-color: var(--green-dark); }
+
+  .btn-secondary {
+    @apply px-4 py-2.5 rounded-xl font-medium transition-all;
+    background-color: var(--beige-dark);
+    color: var(--green);
+  }
+
+  .btn-gold {
+    @apply px-4 py-2.5 rounded-xl font-medium transition-all;
+    background-color: var(--gold);
+    color: white;
+  }
+
+  .btn-danger { @apply bg-red-500 text-white px-4 py-2.5 rounded-xl font-medium transition-all; }
+
+  /* Cards */
+  .card {
+    @apply bg-white rounded-2xl shadow-sm p-4;
+    border: 1px solid var(--border);
+  }
+  .card-hover {
+    @apply bg-white rounded-2xl shadow-sm p-4 hover:shadow-md transition-all cursor-pointer;
+    border: 1px solid var(--border);
+  }
+  .card-hover:hover { border-color: rgba(30,90,16,0.3); }
+
+  /* Form */
+  .input {
+    @apply w-full rounded-xl px-4 py-2.5 text-gray-900 placeholder-gray-400 focus:outline-none transition-all;
+    background-color: var(--beige);
+    border: 1px solid var(--border);
+  }
+  .input:focus {
+    border-color: var(--green);
+    box-shadow: 0 0 0 3px rgba(30,90,16,0.15);
+  }
+  .label { @apply block text-sm font-medium text-gray-700 mb-1.5; }
+
+  /* Badges */
+  .badge       { @apply inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium; }
+  .badge-green { @apply inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium; background:var(--green-subtle); color:var(--green); }
+  .badge-gold  { @apply inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium; background:var(--gold-subtle); color:var(--gold-dark); }
+  .badge-red   { @apply inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-50 text-red-600; }
+  .badge-gray  { @apply inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600; }
+
+  /* Layout */
+  .page-header { @apply flex items-center justify-between mb-6; }
+  .page-title  { @apply text-2xl font-bold; color: var(--green); }
+
+  /* Stats */
+  .stat-card  { @apply bg-white rounded-2xl shadow-sm p-4 flex flex-col gap-1; border: 1px solid var(--border); }
+  .stat-value { @apply text-3xl font-black; color: var(--green); }
+  .stat-label { @apply text-sm text-gray-500; }
+
+  /* Scrollbar */
   .scrollbar-hide { scrollbar-width: none; }
   .scrollbar-hide::-webkit-scrollbar { display: none; }
 }
 
+/* Skeleton */
 @keyframes shimmer { 0%{background-position:-200% 0} 100%{background-position:200% 0} }
 .skeleton {
-  background: linear-gradient(90deg,#ede7db 25%,#f8f4ee 50%,#ede7db 75%);
+  background: linear-gradient(90deg,var(--beige-dark) 25%,var(--beige) 50%,var(--beige-dark) 75%);
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite;
   border-radius: 0.5rem;
   min-height: 1rem;
 }
+
+/* Utility overrides using CSS vars */
+.text-green-primary  { color: var(--green) !important; }
+.bg-green-primary    { background-color: var(--green) !important; }
+.border-green-primary { border-color: var(--green) !important; }
+.text-green-subtle   { color: var(--green-subtle) !important; }
+.bg-green-subtle     { background-color: var(--green-subtle) !important; }
+
+.text-gold-primary   { color: var(--gold) !important; }
+.bg-gold-primary     { background-color: var(--gold) !important; }
+.text-gold-dark      { color: var(--gold-dark) !important; }
+.bg-gold-subtle      { background-color: var(--gold-subtle) !important; }
+
+.bg-beige-primary    { background-color: var(--beige) !important; }
+.bg-beige-dark       { background-color: var(--beige-dark) !important; }
+.border-beige-border { border-color: var(--border) !important; }
+.bg-beige-border     { background-color: var(--border) !important; }
