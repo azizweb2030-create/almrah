@@ -1,93 +1,110 @@
 'use client'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { cn } from '@/lib/utils/cn'
 import toast from 'react-hot-toast'
 
-// فئات النفوق مطابقة للكود الأصلي
+const G = '#1e5a10', BEIGE = '#f8f4ee', BDR = '#d8cfc3', BDARK = '#ede7db'
 const CATEGORIES = ['بهم','خروف','رخل','أم','فحل','غير محدد']
 const COLORS = ['أبيض','أسود','بني','رمادي','أحمر','مختلط']
+const card: React.CSSProperties = {background:'white',borderRadius:20,border:`1px solid ${BDR}`,padding:18,boxShadow:'0 1px 4px rgba(0,0,0,0.05)'}
+const inp: React.CSSProperties = {width:'100%',background:BEIGE,border:`1.5px solid ${BDR}`,borderRadius:12,padding:'11px 14px',fontFamily:'inherit',fontSize:14,outline:'none',boxSizing:'border-box' as const,color:'#111827'}
+const lbl: React.CSSProperties = {display:'block',fontSize:12,fontWeight:700,color:'#6b7280',marginBottom:7,textTransform:'uppercase' as const,letterSpacing:0.5}
 
 export default function NewDeathPage() {
   const router = useRouter()
   const today = new Date().toISOString().split('T')[0]
-  const [form, setForm] = useState({ animal_id:'', color:'', category:'غير محدد', reason:'', death_date:today, mom_id:'', mom_color:'' })
+  const [form, setForm] = useState({animal_id:'',color:'',category:'غير محدد',reason:'',death_date:today,mom_id:'',mom_color:''})
   const [saving, setSaving] = useState(false)
-  const set = (k:string, v:string) => setForm(p => ({ ...p, [k]:v }))
+  const set = (k:string,v:string) => setForm(p=>({...p,[k]:v}))
 
-  async function save(e: React.FormEvent) {
+  async function save(e:React.FormEvent) {
     e.preventDefault()
     if (!form.animal_id.trim()) { toast.error('رقم الحيوان مطلوب'); return }
     setSaving(true)
-    const res = await fetch('/api/deaths', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(form)
-    })
+    const res = await fetch('/api/deaths',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(form)})
     const j = await res.json()
     if (j.error) { toast.error(j.error); setSaving(false); return }
-    toast.success('✅ تم تسجيل النفوق وخصمه من الإجمالي تلقائياً')
+    toast.success('تم تسجيل النفوق وخصمه تلقائياً ✅')
     router.push('/deaths')
   }
 
   return (
-    <div className="max-w-lg mx-auto">
-      <div className="page-header mb-6">
-        <button onClick={() => router.back()} className="text-gray-500 text-sm">→ رجوع</button>
-        <h1 className="page-title">📋 تسجيل نفوق</h1>
-        <div/>
+    <div style={{maxWidth:520,margin:'0 auto',display:'flex',flexDirection:'column',gap:16}}>
+
+      <div style={{display:'flex',alignItems:'center',gap:12}}>
+        <button onClick={()=>router.back()} style={{background:BDARK,border:'none',borderRadius:10,width:36,height:36,cursor:'pointer',fontSize:18,display:'flex',alignItems:'center',justifyContent:'center'}}>←</button>
+        <div>
+          <h1 style={{fontSize:20,fontWeight:900,color:'#dc2626',margin:0}}>تسجيل نفوق</h1>
+          <p style={{fontSize:12,color:'#9ca3af',margin:'2px 0 0'}}>سيُخصم من الإجمالي تلقائياً</p>
+        </div>
       </div>
-      <form onSubmit={save} className="card space-y-4">
-        <div className="bg-red-50 border border-red-100 rounded-xl p-3 text-sm text-red-600">
-          ⚠️ سيتم خصم هذا الحيوان من إجمالي القطيع تلقائياً
-        </div>
-        <div>
-          <label className="label">رقم الحيوان *</label>
-          <input className="input" placeholder="1001" value={form.animal_id} onChange={e => set('animal_id', e.target.value)} required />
-        </div>
-        <div>
-          <label className="label">الفئة</label>
-          <div className="flex flex-wrap gap-2">
-            {CATEGORIES.map(c => (
-              <button key={c} type="button" onClick={() => set('category', c)}
-                className={cn('px-3 py-1.5 rounded-xl text-sm border transition-colors', form.category===c ? 'bg-red-500 text-white border-red-500' : 'bg-white border-beige-border')}>
-                {c}
-              </button>
-            ))}
+
+      {/* تحذير */}
+      <div style={{background:'#fef2f2',border:'1px solid #fecaca',borderRadius:16,padding:'12px 14px',display:'flex',alignItems:'center',gap:10}}>
+        <span style={{fontSize:20,flexShrink:0}}>⚠️</span>
+        <p style={{margin:0,fontSize:13,color:'#dc2626',fontWeight:600}}>سيتم خصم هذا الحيوان من إجمالي القطيع تلقائياً</p>
+      </div>
+
+      <form onSubmit={save} style={{display:'flex',flexDirection:'column',gap:14}}>
+        <div style={card}>
+          <p style={{fontSize:12,fontWeight:800,color:'#9ca3af',margin:'0 0 14px',textTransform:'uppercase',letterSpacing:1}}>بيانات الحيوان</p>
+          <div style={{display:'flex',flexDirection:'column',gap:12}}>
+            <div>
+              <label style={lbl}>رقم الحيوان *</label>
+              <input style={inp} placeholder="مثال: 1001" inputMode="numeric" value={form.animal_id} onChange={e=>set('animal_id',e.target.value)} required />
+            </div>
+            <div>
+              <label style={lbl}>الفئة</label>
+              <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
+                {CATEGORIES.map(c=>(
+                  <button key={c} type="button" onClick={()=>set('category',c)}
+                    style={{padding:'7px 14px',borderRadius:22,border:`1.5px solid ${c===form.category?'#dc2626':BDR}`,background:c===form.category?'#dc2626':'white',color:c===form.category?'white':'#374151',fontFamily:'inherit',fontSize:13,fontWeight:700,cursor:'pointer'}}>
+                    {c}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div>
+              <label style={lbl}>اللون</label>
+              <div style={{display:'flex',gap:5,flexWrap:'wrap'}}>
+                {COLORS.map(c=>(
+                  <button key={c} type="button" onClick={()=>set('color',c===form.color?'':c)}
+                    style={{padding:'6px 12px',borderRadius:10,border:`1px solid ${c===form.color?G:BDR}`,background:c===form.color?G:'white',color:c===form.color?'white':'#374151',fontFamily:'inherit',fontSize:12,cursor:'pointer'}}>
+                    {c}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div>
+              <label style={lbl}>تاريخ النفوق</label>
+              <input type="date" style={inp} value={form.death_date} max={today} onChange={e=>set('death_date',e.target.value)} />
+            </div>
+            <div>
+              <label style={lbl}>السبب (اختياري)</label>
+              <input style={inp} placeholder="مرض، حادث، ولادة..." value={form.reason} onChange={e=>set('reason',e.target.value)} />
+            </div>
+            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}}>
+              <div>
+                <label style={{...lbl,fontSize:11}}>رقم الأم (إن كان مولوداً)</label>
+                <input style={{...inp,fontSize:13}} placeholder="1001" value={form.mom_id} onChange={e=>set('mom_id',e.target.value)} />
+              </div>
+              <div>
+                <label style={{...lbl,fontSize:11}}>لون الأم</label>
+                <input style={{...inp,fontSize:13}} placeholder="أبيض..." value={form.mom_color} onChange={e=>set('mom_color',e.target.value)} />
+              </div>
+            </div>
           </div>
         </div>
-        <div>
-          <label className="label">اللون</label>
-          <div className="flex flex-wrap gap-1.5">
-            {COLORS.map(c => (
-              <button key={c} type="button" onClick={() => set('color', c)}
-                className={cn('px-2.5 py-1 rounded-lg text-xs border transition-colors', form.color===c ? 'bg-green-primary text-white border-green-primary' : 'bg-white border-beige-border')}>
-                {c}
-              </button>
-            ))}
-          </div>
-        </div>
-        <div>
-          <label className="label">تاريخ النفوق</label>
-          <input type="date" className="input" value={form.death_date} max={today} onChange={e => set('death_date', e.target.value)} />
-        </div>
-        <div>
-          <label className="label">السبب (اختياري)</label>
-          <input className="input" placeholder="مرض، حادث، ولادة..." value={form.reason} onChange={e => set('reason', e.target.value)} />
-        </div>
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className="label text-xs">رقم الأم (إن وجد)</label>
-            <input className="input text-sm" value={form.mom_id} onChange={e => set('mom_id', e.target.value)} placeholder="1001"/>
-          </div>
-          <div>
-            <label className="label text-xs">لون الأم</label>
-            <input className="input text-sm" value={form.mom_color} onChange={e => set('mom_color', e.target.value)} placeholder="أبيض..."/>
-          </div>
-        </div>
-        <div className="flex gap-3">
-          <button type="submit" className="btn-danger flex-1" disabled={saving}>{saving ? '⏳...' : '📋 تسجيل النفوق'}</button>
-          <button type="button" onClick={() => router.back()} className="btn-secondary px-5">إلغاء</button>
+
+        <div style={{display:'flex',gap:10}}>
+          <button type="submit" disabled={saving}
+            style={{flex:1,background:'linear-gradient(135deg,#991b1b,#ef4444)',color:'white',border:'none',borderRadius:14,padding:'14px',fontFamily:'inherit',fontSize:15,fontWeight:800,cursor:'pointer',boxShadow:'0 4px 14px rgba(220,38,38,0.3)',opacity:saving?0.7:1}}>
+            {saving?'⏳ جاري التسجيل...':'📋 تسجيل النفوق'}
+          </button>
+          <button type="button" onClick={()=>router.back()}
+            style={{background:BDARK,border:'none',borderRadius:14,padding:'14px 20px',fontFamily:'inherit',fontSize:15,fontWeight:700,cursor:'pointer',color:'#374151'}}>
+            إلغاء
+          </button>
         </div>
       </form>
     </div>
