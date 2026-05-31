@@ -8,6 +8,7 @@ import { createClient } from '@/lib/supabase/client'
 const NAV = [
   { href:'/dashboard',     icon:'🏠', label:'الرئيسية' },
   { href:'/births',        icon:'🐑', label:'الولادات' },
+  { href:'/production',      icon:'📋', label:'الإنتاج' },
   { href:'/flock',         icon:'📊', label:'القطيع' },
   { href:'/vet',           icon:'🩺', label:'البيطرة' },
   { href:'/deaths',        icon:'📋', label:'النفوق' },
