@@ -1,0 +1,22 @@
+name: Disable Vercel Protection
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/disable-protection.yml']
+
+jobs:
+  disable:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Disable Vercel SSO Protection
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: |
+          curl -s -X PATCH \
+            "https://api.vercel.com/v9/projects/prj_dYGxk9IRUc4Rg7crLpb3MM1dwR8c?teamId=team_0WM1wNiYAi7vHhbHDqc6Lcha" \
+            -H "Authorization: Bearer $VERCEL_TOKEN" \
+            -H "Content-Type: application/json" \
+            -d '{"ssoProtection":null}' \
+            -w "\nHTTP: %{http_code}\n"
+          echo "Done"
