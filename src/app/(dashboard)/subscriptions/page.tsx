@@ -1,68 +1,156 @@
 'use client'
 import { useState, useEffect } from 'react'
-import { formatArabicDate } from '@/lib/utils/dates'
-import { formatCurrency } from '@/lib/utils/format'
 import toast from 'react-hot-toast'
+
+const G = '#1e5a10', GOLD = '#c9a84c', GOLDD = '#a8872e', GOLDS = '#fdf8ec'
+const GSUBT = '#e8f5e2', BEIGE = '#f8f4ee', BDR = '#d8cfc3'
 
 export default function SubscriptionsPage() {
   const [subs, setSubs] = useState<any[]>([])
-  const [subscribing, setSubscribing] = useState('')
+  const [profile, setProfile] = useState<any>(null)
+  const [loading, setLoading] = useState(true)
 
-  useEffect(() => { fetch('/api/subscriptions').then(r=>r.json()).then(j=>setSubs(j.data||[])) }, [])
+  useEffect(() => {
+    Promise.all([
+      fetch('/api/subscriptions').then(r=>r.json()),
+      fetch('/api/profile').then(r=>r.json()),
+    ]).then(([s,p]) => {
+      setSubs(s.data||[]); setProfile(p.data)
+      setLoading(false)
+    })
+  }, [])
 
-  async function subscribe(plan:string) {
-    setSubscribing(plan)
-    const res = await fetch('/api/subscriptions',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({plan})})
-    const j = await res.json()
-    if (j.error) { toast.error(j.error); setSubscribing(''); return }
-    setSubs(p=>[j.data,...p]); toast.success('تم إرسال طلب الاشتراك'); setSubscribing('')
-  }
+  const activeSub = subs.find(s => s.status === 'active')
+  const isActive = !!activeSub
+  const isPending = subs.some(s => s.status === 'pending')
 
-  const active = subs.find(s=>s.status==='active')
-  const PLAN_AR: Record<string,string> = {monthly:'شهري',lifetime:'دائم',trial:'تجريبي'}
+  const card: React.CSSProperties = {background:'white',borderRadius:20,border:`1px solid ${BDR}`,padding:18,boxShadow:'0 1px 4px rgba(0,0,0,0.05)'}
+
+  if (loading) return (
+    <div style={{display:'flex',flexDirection:'column',gap:12}}>
+      {[...Array(3)].map((_,i)=><div key={i} style={{height:100,borderRadius:20,background:'#e5e7eb',animation:'shimmer 1.5s infinite'}}/>)}
+    </div>
+  )
 
   return (
-    <div className="space-y-6">
-      <h1 className="page-title">💳 الاشتراك</h1>
-      {active ? (
-        <div className="bg-green-subtle border border-green-primary/30 rounded-2xl p-4">
-          <p className="font-black text-green-primary text-lg">✅ اشتراك نشط</p>
-          <p className="text-sm text-gray-600 mt-1">خطة {PLAN_AR[active.plan]||active.plan}</p>
-          {active.expires_at && <p className="text-sm text-gray-500 mt-1">ينتهي في {formatArabicDate(active.expires_at)}</p>}
-          {!active.expires_at && <p className="text-sm text-green-primary mt-1">♾️ دائم</p>}
+    <div style={{display:'flex',flexDirection:'column',gap:16}}>
+
+      <div>
+        <h1 style={{fontSize:22,fontWeight:900,color:G,margin:0}}>اشتراكي</h1>
+        <p style={{fontSize:12,color:'#9ca3af',margin:'3px 0 0'}}>إدارة اشتراكك في المراح</p>
+      </div>
+
+      {/* حالة الاشتراك */}
+      <div style={{...card, background: isActive ? GSUBT : '#fffbeb', border: `1px solid ${isActive ? G+'33' : '#fde68a'}`}}>
+        <div style={{display:'flex',alignItems:'center',gap:12}}>
+          <div style={{width:52,height:52,borderRadius:15,background:isActive?G:'#f59e0b',display:'flex',alignItems:'center',justifyContent:'center',fontSize:24}}>
+            {isActive ? '✅' : isPending ? '⏳' : '⚠️'}
+          </div>
+          <div style={{flex:1}}>
+            <p style={{margin:0,fontWeight:900,fontSize:16,color:isActive?G:isPending?'#92400e':'#374151'}}>
+              {isActive ? 'اشتراك نشط' : isPending ? 'اشتراك قيد المراجعة' : 'لا يوجد اشتراك نشط'}
+            </p>
+            {activeSub && (
+              <p style={{margin:'4px 0 0',fontSize:12,color:'#6b7280'}}>
+                ينتهي: {activeSub.end_date ? new Date(activeSub.end_date).toLocaleDateString('ar-SA') : 'دائم'}
+                {activeSub.plan && ` · ${activeSub.plan}`}
+              </p>
+            )}
+            {isPending && !isActive && (
+              <p style={{margin:'4px 0 0',fontSize:12,color:'#92400e'}}>سيتم تفعيل اشتراكك قريباً</p>
+            )}
+          </div>
+          <div style={{background:isActive?G:isPending?'#f59e0b':'#9ca3af',color:'white',padding:'4px 12px',borderRadius:100,fontSize:12,fontWeight:700,flexShrink:0}}>
+            {isActive ? 'فعّال' : isPending ? 'معلق' : 'منتهي'}
+          </div>
         </div>
-      ) : (
-        <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 text-center">
-          <p className="font-bold text-amber-700">⚠️ لا يوجد اشتراك نشط</p>
-        </div>
-      )}
-      <div className="grid gap-4 sm:grid-cols-2">
-        {[{key:'monthly',label:'الشهرية',price:49,period:'شهر',features:['جميع الميزات','30,000 توكن AI']},
-          {key:'lifetime',label:'الدائمة',price:299,period:'مرة',features:['جميع الميزات','100,000 توكن AI','تحديثات مجانية']}].map(plan=>(
-          <div key={plan.key} className="card space-y-4">
-            <div>
-              <p className="font-black text-lg">{plan.label}</p>
-              <p className="text-2xl font-black text-green-primary">{formatCurrency(plan.price)} <span className="text-sm text-gray-500 font-normal">/ {plan.period}</span></p>
+      </div>
+
+      {/* خطط الاشتراك */}
+      <div>
+        <p style={{fontSize:11,fontWeight:800,color:'#9ca3af',margin:'0 0 12px',textTransform:'uppercase',letterSpacing:1}}>خطط الاشتراك</p>
+        <div style={{display:'flex',flexDirection:'column',gap:10}}>
+
+          {/* شهري */}
+          <div style={{...card,border:`2px solid ${BDR}`,position:'relative',overflow:'hidden'}}>
+            <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:12}}>
+              <div>
+                <p style={{margin:'0 0 3px',fontSize:16,fontWeight:900}}>الخطة الشهرية</p>
+                <p style={{margin:0,fontSize:12,color:'#6b7280'}}>تجديد شهري تلقائي</p>
+              </div>
+              <div style={{textAlign:'left'}}>
+                <span style={{fontSize:26,fontWeight:900,color:G}}>٣٠</span>
+                <span style={{fontSize:13,color:'#6b7280'}}> ر.س / شهر</span>
+              </div>
             </div>
-            <ul className="space-y-1">{plan.features.map(f=><li key={f} className="text-sm text-gray-600 flex items-center gap-2"><span className="text-green-primary">✓</span>{f}</li>)}</ul>
-            <button onClick={()=>subscribe(plan.key)} disabled={!!subscribing||active?.plan===plan.key}
-              className={`w-full py-2.5 rounded-xl font-bold text-sm ${active?.plan===plan.key?'bg-green-subtle text-green-primary':'btn-primary'}`}>
-              {subscribing===plan.key?'⏳...' : active?.plan===plan.key?'✅ مفعّل':'اشتراك الآن'}
+            <div style={{display:'flex',flexDirection:'column',gap:6,marginBottom:14}}>
+              {['✅ وصول كامل لجميع الميزات','✅ إشعارات تيليجرام','✅ مساعد AI','✅ تصدير PDF','✅ دعم فني'].map(f=>(
+                <p key={f} style={{margin:0,fontSize:12,color:'#374151'}}>{f}</p>
+              ))}
+            </div>
+            <button onClick={()=>toast.info('تواصل معنا على تيليجرام @almrah_support')}
+              style={{width:'100%',background:G,color:'white',border:'none',borderRadius:12,padding:'12px',fontFamily:'inherit',fontSize:14,fontWeight:700,cursor:'pointer'}}>
+              اشترك الآن
             </button>
           </div>
-        ))}
+
+          {/* دائم */}
+          <div style={{...card,border:`2px solid ${GOLD}`,position:'relative',overflow:'hidden',background:`linear-gradient(135deg,white,${GOLDS})`}}>
+            <div style={{position:'absolute',top:12,left:12,background:GOLD,color:'white',padding:'3px 10px',borderRadius:100,fontSize:11,fontWeight:700}}>
+              الأفضل قيمة ⭐
+            </div>
+            <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:12,marginTop:24}}>
+              <div>
+                <p style={{margin:'0 0 3px',fontSize:16,fontWeight:900}}>الخطة الدائمة</p>
+                <p style={{margin:0,fontSize:12,color:'#6b7280'}}>دفعة واحدة للأبد</p>
+              </div>
+              <div style={{textAlign:'left'}}>
+                <span style={{fontSize:26,fontWeight:900,color:GOLDD}}>٢٩٩</span>
+                <span style={{fontSize:13,color:'#6b7280'}}> ر.س</span>
+              </div>
+            </div>
+            <div style={{display:'flex',flexDirection:'column',gap:6,marginBottom:14}}>
+              {['✅ كل مزايا الخطة الشهرية','✅ وصول مدى الحياة','✅ جميع التحديثات مجاناً','✅ أولوية في الدعم الفني'].map(f=>(
+                <p key={f} style={{margin:0,fontSize:12,color:'#374151'}}>{f}</p>
+              ))}
+            </div>
+            <button onClick={()=>toast.info('تواصل معنا على تيليجرام @almrah_support')}
+              style={{width:'100%',background:`linear-gradient(135deg,${GOLDD},${GOLD})`,color:'white',border:'none',borderRadius:12,padding:'12px',fontFamily:'inherit',fontSize:14,fontWeight:700,cursor:'pointer',boxShadow:`0 4px 14px ${GOLD}55`}}>
+              اشترك مدى الحياة
+            </button>
+          </div>
+        </div>
       </div>
-      {subs.length>0 && (
-        <div className="card">
-          <h2 className="font-bold mb-3">سجل الاشتراكات</h2>
+
+      {/* تاريخ الاشتراكات */}
+      {subs.length > 0 && (
+        <div style={card}>
+          <p style={{fontSize:11,fontWeight:800,color:'#9ca3af',margin:'0 0 12px',textTransform:'uppercase',letterSpacing:1}}>تاريخ الاشتراكات</p>
           {subs.map((s:any)=>(
-            <div key={s.id} className="flex items-center justify-between p-3 bg-beige-primary rounded-xl mb-2">
-              <div><p className="font-medium text-sm">{PLAN_AR[s.plan]} — {formatCurrency(s.amount)}</p><p className="text-xs text-gray-400">{formatArabicDate(s.created_at)}</p></div>
-              <span className="badge-gray text-xs">{s.status}</span>
+            <div key={s.id} style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'10px 0',borderBottom:`1px solid ${BDR}`}}>
+              <div>
+                <p style={{margin:0,fontSize:13,fontWeight:600}}>{s.plan||'اشتراك'}</p>
+                <p style={{margin:'2px 0 0',fontSize:11,color:'#9ca3af'}}>{s.start_date?.split('T')[0]} → {s.end_date?.split('T')[0]||'دائم'}</p>
+              </div>
+              <span style={{background:s.status==='active'?GSUBT:s.status==='pending'?'#fffbeb':'#f3f4f6',color:s.status==='active'?G:s.status==='pending'?'#92400e':'#6b7280',padding:'3px 10px',borderRadius:100,fontSize:11,fontWeight:700}}>
+                {s.status==='active'?'نشط':s.status==='pending'?'معلق':'منتهي'}
+              </span>
             </div>
           ))}
         </div>
       )}
+
+      {/* تواصل */}
+      <div style={{...card,textAlign:'center',background:BEIGE}}>
+        <p style={{fontSize:20,margin:'0 0 8px'}}>💬</p>
+        <p style={{fontSize:13,fontWeight:700,margin:'0 0 4px'}}>تحتاج مساعدة في الاشتراك؟</p>
+        <p style={{fontSize:12,color:'#6b7280',margin:'0 0 12px'}}>تواصل معنا عبر تيليجرام</p>
+        <a href="https://t.me/almrah_support" target="_blank" rel="noopener"
+          style={{display:'inline-flex',alignItems:'center',gap:8,background:'#0088cc',color:'white',padding:'10px 20px',borderRadius:12,textDecoration:'none',fontSize:14,fontWeight:700}}>
+          📱 @almrah_support
+        </a>
+      </div>
+
     </div>
   )
 }
