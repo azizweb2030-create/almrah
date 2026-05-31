@@ -45,7 +45,7 @@ export default function ClientShell({ children }: { children: React.ReactNode })
   return (
     <div style={{minHeight:'100vh',backgroundColor:BEIGE}}>
 
-      {/* ── Header ── */}
+      {/* Header */}
       <header style={{
         position:'fixed',top:0,right:0,left:0,zIndex:40,
         background:'rgba(255,255,255,0.94)',backdropFilter:'blur(12px)',
@@ -75,7 +75,7 @@ export default function ClientShell({ children }: { children: React.ReactNode })
         )}
       </header>
 
-      {/* ── Desktop Sidebar ── */}
+      {/* Desktop Sidebar */}
       <aside className="hidden lg:flex" style={{
         position:'fixed',top:0,right:0,bottom:0,width:230,
         flexDirection:'column',borderLeft:`1px solid ${BDR}`,
@@ -85,7 +85,7 @@ export default function ClientShell({ children }: { children: React.ReactNode })
           {NAV.map(item => (
             <Link key={item.href} href={item.href} style={{
               display:'flex',alignItems:'center',gap:12,padding:'10px 12px',borderRadius:12,
-              textDecoration:'none',fontSize:14,fontWeight:500,transition:'all .15s',
+              textDecoration:'none',fontSize:14,transition:'all .15s',
               background: active(item.href) ? GSUBT : 'transparent',
               color: active(item.href) ? G : '#4b5563',
               fontWeight: active(item.href) ? 700 : 500,
@@ -109,7 +109,7 @@ export default function ClientShell({ children }: { children: React.ReactNode })
         </div>
       </aside>
 
-      {/* ── Mobile Drawer ── */}
+      {/* Mobile Drawer */}
       {open && (
         <div style={{position:'fixed',inset:0,zIndex:50,display:'flex'}}>
           <div style={{position:'absolute',inset:0,background:'rgba(0,0,0,0.45)',backdropFilter:'blur(2px)'}} onClick={()=>setOpen(false)}/>
@@ -147,14 +147,14 @@ export default function ClientShell({ children }: { children: React.ReactNode })
         </div>
       )}
 
-      {/* ── Main Content ── */}
+      {/* Main Content */}
       <main style={{paddingTop:56,minHeight:'100vh'}} className="lg:mr-[230px]">
         <div style={{padding:'16px',paddingBottom:88,maxWidth:900,margin:'0 auto'}} className="lg:pb-8">
           {children}
         </div>
       </main>
 
-      {/* ── Bottom Nav Mobile ── */}
+      {/* Bottom Nav Mobile */}
       <nav className="lg:hidden" style={{
         position:'fixed',bottom:0,right:0,left:0,zIndex:40,
         background:'rgba(255,255,255,0.95)',backdropFilter:'blur(12px)',
