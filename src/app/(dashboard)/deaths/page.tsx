@@ -22,7 +22,7 @@ export default function DeathsPage() {
 
   const filtered = deaths.filter(d => {
     const q = search.toLowerCase()
-    return !q || d.animal_id?.toString().includes(q) || d.category?.includes(q) || d.cause?.includes(q)
+    return !q || d.animal_id?.toString().includes(q) || d.category?.includes(q) || d.reason?.includes(q)
   })
 
   const card: React.CSSProperties = {background:'white',borderRadius:20,border:`1px solid ${BDR}`,padding:14,boxShadow:'0 1px 4px rgba(0,0,0,0.05)'}
@@ -91,7 +91,7 @@ export default function DeathsPage() {
                 </div>
                 <div style={{fontSize:11,color:'#9ca3af',display:'flex',gap:10}}>
                   <span>📅 {d.date||d.created_at?.split('T')[0]}</span>
-                  {d.cause && <span>🔍 {d.cause}</span>}
+                  {d.reason && <span>🔍 {d.reason}</span>}
                 </div>
               </div>
             </div>
