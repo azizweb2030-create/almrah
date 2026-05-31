@@ -166,7 +166,7 @@ export default function DashboardPage() {
       )}
 
       {/* آخر الولادات + العزل */}
-      <div style={{display:'grid',gap:16}} className="sm:grid-cols-2">
+      <div style={{display:'grid',gap:16,gridTemplateColumns:'1fr'}}>
         <div>
           <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:10}}>
             <p style={{fontSize:11,fontWeight:800,color:'#9ca3af',margin:0,textTransform:'uppercase',letterSpacing:1}}>آخر الولادات</p>
