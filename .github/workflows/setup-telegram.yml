@@ -1,0 +1,40 @@
+name: Setup Telegram Bot Token
+on:
+  workflow_dispatch:
+    inputs:
+      bot_token:
+        description: 'Telegram Bot Token (من @BotFather)'
+        required: true
+        type: string
+
+jobs:
+  setup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Add TELEGRAM_BOT_TOKEN to Vercel
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          BOT_TOKEN: ${{ inputs.bot_token }}
+        run: |
+          # أضف TELEGRAM_BOT_TOKEN لكل البيئات
+          for env_type in production preview development; do
+            curl -s -X POST \
+              "https://api.vercel.com/v10/projects/prj_dYGxk9IRUc4Rg7crLpb3MM1dwR8c/env?teamId=team_0WM1wNiYAi7vHhbHDqc6Lcha" \
+              -H "Authorization: Bearer $VERCEL_TOKEN" \
+              -H "Content-Type: application/json" \
+              -d "{\"key\":\"TELEGRAM_BOT_TOKEN\",\"value\":\"$BOT_TOKEN\",\"type\":\"encrypted\",\"target\":[\"$env_type\"]}" \
+              -w "\n$env_type: %{http_code}\n"
+          done
+          
+          # تحقق من صحة الـ Token
+          curl -s "https://api.telegram.org/bot$BOT_TOKEN/getMe" | python3 -c "
+import sys, json
+d = json.load(sys.stdin)
+if d.get('ok'):
+    r = d['result']
+    print(f'✅ Bot valid: @{r[\"username\"]} ({r[\"first_name\"]})')
+else:
+    print(f'❌ Invalid token: {d.get(\"description\")}')
+"
+          
+          echo "✅ Done! Re-deploy Vercel to apply."
