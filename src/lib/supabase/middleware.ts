@@ -1,6 +1,9 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
+// Cache maintenance mode - يُحدَّث كل 60 ثانية لتفادي استعلام DB في كل طلب
+let maintenanceCache = { value: false, ts: 0 }
+
 export async function updateSession(request: NextRequest) {
   let response = NextResponse.next({ request })
   const supabase = createServerClient(
@@ -22,11 +25,15 @@ export async function updateSession(request: NextRequest) {
   const isPublic = ['/', '/login', '/register', '/forgot-password', '/maintenance', '/offline'].includes(path)
     || path.startsWith('/api') || path.startsWith('/_next') || path.startsWith('/favicon')
 
-  // فحص وضع الصيانة (باستثناء /admin و /api)
+  // فحص وضع الصيانة مع cache (باستثناء /admin و /api)
   if (!path.startsWith('/admin') && !path.startsWith('/api') && path !== '/maintenance') {
-    const { data: maint } = await supabase.from('app_settings')
-      .select('value').eq('key', 'maintenance_mode').single()
-    if (maint?.value === 'true') {
+    const now = Date.now()
+    if (now - maintenanceCache.ts > 60_000) {
+      const { data: maint } = await supabase.from('app_settings')
+        .select('value').eq('key', 'maintenance_mode').single()
+      maintenanceCache = { value: maint?.value === 'true', ts: now }
+    }
+    if (maintenanceCache.value) {
       return NextResponse.redirect(new URL('/maintenance', request.url))
     }
   }
