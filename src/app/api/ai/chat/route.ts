@@ -34,51 +34,54 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'تجاوزت حد التوكنات المسموح به.' }, { status: 429 })
     }
 
-    // بناء المحادثة — Anthropic تشترط أن تبدأ بـ user
+    // بناء المحادثة — Gemini يستخدم "model" بدل "assistant"
     let history = ((messages || []) as { role: string; content: string }[])
       .filter(m => (m.role === 'user' || m.role === 'assistant') && String(m.content || '').trim())
-      .map(m => ({ role: m.role as 'user' | 'assistant', content: String(m.content) }))
+      .map(m => ({
+        role: m.role === 'assistant' ? 'model' : 'user',
+        parts: [{ text: String(m.content) }]
+      }))
 
-    // حذف الرسائل الأولى من نوع assistant
-    while (history.length > 0 && history[0].role === 'assistant') {
+    // حذف الرسائل الأولى من نوع model
+    while (history.length > 0 && history[0].role === 'model') {
       history = history.slice(1)
     }
 
     // آخر 10 رسائل فقط
     history = history.slice(-10)
 
-    const finalMessages = [...history, { role: 'user' as const, content: message.trim() }]
+    const finalMessages = [...history, { role: 'user', parts: [{ text: message.trim() }] }]
 
-    const apiKey = process.env.ANTHROPIC_API_KEY
+    const apiKey = process.env.GEMINI_API_KEY
     if (!apiKey) return NextResponse.json({ error: 'مفتاح API غير موجود' }, { status: 500 })
 
-    // ✅ موديل مضمون الصحة
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01'
-      },
-      body: JSON.stringify({
-        model: 'claude-3-5-haiku-20241022',
-        max_tokens: 800,
-        system: SYSTEM_PROMPT,
-        messages: finalMessages
-      })
-    })
+    const res = await fetch(
+      'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent',
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-goog-api-key': apiKey,
+        },
+        body: JSON.stringify({
+          system_instruction: { parts: [{ text: SYSTEM_PROMPT }] },
+          contents: finalMessages,
+          generationConfig: { maxOutputTokens: 800, temperature: 0.7 }
+        })
+      }
+    )
 
     if (!res.ok) {
       const errBody = await res.json().catch(() => ({}))
-      console.error('[AI] Error:', res.status, JSON.stringify(errBody))
+      console.error('[AI] Gemini Error:', res.status, JSON.stringify(errBody))
       return NextResponse.json({
-        error: `خطأ ${res.status}: ${(errBody as any)?.error?.message || 'حاول مرة أخرى'}`
+        error: `خطأ ${res.status}: حاول مرة أخرى`
       }, { status: 500 })
     }
 
     const d = await res.json()
-    const text = d.content?.[0]?.text || 'لم أتمكن من توليد رد'
-    const tokens = (d.usage?.input_tokens || 0) + (d.usage?.output_tokens || 0)
+    const text = d?.candidates?.[0]?.content?.parts?.[0]?.text || 'لم أتمكن من توليد رد'
+    const tokens = d?.usageMetadata?.totalTokenCount || 0
 
     if (tokens > 0 && profile) {
       await supabase.from('profiles')
