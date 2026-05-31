@@ -1,103 +1,112 @@
 'use client'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { cn } from '@/lib/utils/cn'
 import toast from 'react-hot-toast'
 
+const G = '#1e5a10', GSUBT = '#e8f5e2', BEIGE = '#f8f4ee', BDR = '#d8cfc3', BDARK = '#ede7db'
 const DISEASES = ['إسهال','التهاب رئوي','حمى','جرح خارجي','ضعف عام','فقدان شهية','أخرى']
 const SEVERITIES = [
-  { v:'عادية', icon:'✅', cls:'bg-green-subtle text-green-primary border-green-primary/30' },
-  { v:'متوسطة', icon:'⚠️', cls:'bg-amber-50 text-amber-700 border-amber-300' },
-  { v:'حرجة', icon:'🚨', cls:'bg-red-50 text-red-600 border-red-300' },
+  {v:'عادية', icon:'✅', bg:'#f0fdf4', color:'#16a34a', border:'#86efac'},
+  {v:'متوسطة', icon:'⚠️', bg:'#fffbeb', color:'#d97706', border:'#fcd34d'},
+  {v:'حرجة', icon:'🚨', bg:'#fef2f2', color:'#dc2626', border:'#fca5a5'},
 ]
+const card: React.CSSProperties = {background:'white',borderRadius:20,border:`1px solid ${BDR}`,padding:18,boxShadow:'0 1px 4px rgba(0,0,0,0.05)'}
+const inp: React.CSSProperties = {width:'100%',background:BEIGE,border:`1.5px solid ${BDR}`,borderRadius:12,padding:'11px 14px',fontFamily:'inherit',fontSize:14,outline:'none',boxSizing:'border-box' as const,color:'#111827'}
+const lbl: React.CSSProperties = {display:'block',fontSize:12,fontWeight:700,color:'#6b7280',marginBottom:7,textTransform:'uppercase' as const,letterSpacing:0.5}
 
 export default function NewIsolationPage() {
   const router = useRouter()
   const today = new Date().toISOString().split('T')[0]
-  const [form, setForm] = useState({
-    animal_id:'', disease:'', disease_other:'',
-    treatment:'', duration_text:'', start_date:today, severity:'عادية'
-  })
+  const [form, setForm] = useState({animal_id:'',disease:'',disease_other:'',treatment:'',duration_text:'',start_date:today,severity:'عادية'})
   const [saving, setSaving] = useState(false)
-  const set = (k:string, v:string) => setForm(p=>({...p,[k]:v}))
+  const set = (k:string,v:string) => setForm(p=>({...p,[k]:v}))
 
   async function save(e:React.FormEvent) {
     e.preventDefault()
     if (!form.animal_id.trim()||!form.disease) { toast.error('رقم الحيوان والمرض مطلوبان'); return }
-    if (form.disease==='أخرى' && !form.disease_other.trim()) { toast.error('اكتب اسم المرض'); return }
+    if (form.disease==='أخرى'&&!form.disease_other.trim()) { toast.error('اكتب اسم المرض'); return }
     setSaving(true)
-    const res = await fetch('/api/vet/isolation',{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify(form)
-    })
+    const res = await fetch('/api/vet/isolation',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(form)})
     const j = await res.json()
     if (j.error) { toast.error(j.error); setSaving(false); return }
-    toast.success('✅ تم إضافة حالة العزل')
+    toast.success('تمت إضافة حالة العزل ✅')
     router.push('/vet')
   }
 
+  const sevCfg = SEVERITIES.find(s=>s.v===form.severity)!
+
   return (
-    <div className="max-w-lg mx-auto">
-      <div className="page-header mb-6">
-        <button onClick={()=>router.back()} className="text-gray-500 text-sm">→ رجوع</button>
-        <h1 className="page-title">🩺 عزل جديد</h1>
-        <div/>
-      </div>
-      <form onSubmit={save} className="card space-y-5">
-        {/* درجة الخطورة أولاً */}
+    <div style={{maxWidth:520,margin:'0 auto',display:'flex',flexDirection:'column',gap:16}}>
+
+      <div style={{display:'flex',alignItems:'center',gap:12}}>
+        <button onClick={()=>router.back()} style={{background:BDARK,border:'none',borderRadius:10,width:36,height:36,cursor:'pointer',fontSize:18,display:'flex',alignItems:'center',justifyContent:'center'}}>←</button>
         <div>
-          <label className="label">درجة الخطورة</label>
-          <div className="flex gap-2">
+          <h1 style={{fontSize:20,fontWeight:900,color:'#1d4ed8',margin:0}}>عزل بيطري جديد</h1>
+          <p style={{fontSize:12,color:'#9ca3af',margin:'2px 0 0'}}>أدخل بيانات الحيوان</p>
+        </div>
+      </div>
+
+      <form onSubmit={save} style={{display:'flex',flexDirection:'column',gap:14}}>
+
+        {/* درجة الخطورة */}
+        <div style={card}>
+          <label style={lbl}>درجة الخطورة</label>
+          <div style={{display:'flex',gap:8}}>
             {SEVERITIES.map(s=>(
               <button key={s.v} type="button" onClick={()=>set('severity',s.v)}
-                className={cn('flex-1 py-2.5 rounded-xl text-sm font-medium border transition-colors',
-                  form.severity===s.v?s.cls:'bg-white border-beige-border text-gray-600')}>
-                {s.icon} {s.v}
+                style={{flex:1,padding:'10px 8px',borderRadius:14,border:`1.5px solid ${form.severity===s.v?s.border:BDR}`,background:form.severity===s.v?s.bg:'white',color:form.severity===s.v?s.color:'#6b7280',fontFamily:'inherit',fontSize:13,fontWeight:700,cursor:'pointer'}}>
+                <div style={{fontSize:18,marginBottom:3}}>{s.icon}</div>
+                {s.v}
               </button>
             ))}
           </div>
         </div>
 
-        <div>
-          <label className="label">رقم الحيوان *</label>
-          <input className="input" placeholder="1001" value={form.animal_id} onChange={e=>set('animal_id',e.target.value)} required />
-        </div>
-
-        <div>
-          <label className="label">المرض / الحالة *</label>
-          <div className="flex flex-wrap gap-2 mb-2">
-            {DISEASES.map(d=>(
-              <button key={d} type="button" onClick={()=>set('disease',d)}
-                className={cn('px-3 py-1.5 rounded-xl text-sm border transition-colors',
-                  form.disease===d?'bg-green-primary text-white border-green-primary':'bg-white border-beige-border')}>
-                {d}
-              </button>
-            ))}
+        <div style={card}>
+          <p style={{fontSize:12,fontWeight:800,color:'#9ca3af',margin:'0 0 14px',textTransform:'uppercase',letterSpacing:1}}>بيانات الحالة</p>
+          <div style={{display:'flex',flexDirection:'column',gap:12}}>
+            <div>
+              <label style={lbl}>رقم الحيوان *</label>
+              <input style={inp} placeholder="مثال: 1001" inputMode="numeric" value={form.animal_id} onChange={e=>set('animal_id',e.target.value)} required />
+            </div>
+            <div>
+              <label style={lbl}>المرض / الحالة *</label>
+              <div style={{display:'flex',gap:6,flexWrap:'wrap',marginBottom:form.disease==='أخرى'?8:0}}>
+                {DISEASES.map(d=>(
+                  <button key={d} type="button" onClick={()=>set('disease',d)}
+                    style={{padding:'7px 14px',borderRadius:22,border:`1.5px solid ${d===form.disease?'#1d4ed8':BDR}`,background:d===form.disease?'#1d4ed8':'white',color:d===form.disease?'white':'#374151',fontFamily:'inherit',fontSize:13,fontWeight:700,cursor:'pointer'}}>
+                    {d}
+                  </button>
+                ))}
+              </div>
+              {form.disease==='أخرى' && (
+                <input style={inp} placeholder="اكتب اسم المرض..." value={form.disease_other} onChange={e=>set('disease_other',e.target.value)} required />
+              )}
+            </div>
+            <div>
+              <label style={lbl}>تاريخ العزل</label>
+              <input type="date" style={inp} value={form.start_date} max={today} onChange={e=>set('start_date',e.target.value)} />
+            </div>
+            <div>
+              <label style={lbl}>العلاج / الدواء</label>
+              <input style={inp} placeholder="اسم الدواء أو طريقة العلاج..." value={form.treatment} onChange={e=>set('treatment',e.target.value)} />
+            </div>
+            <div>
+              <label style={lbl}>المدة المتوقعة</label>
+              <input style={inp} placeholder="3 أيام، أسبوع، حتى التعافي..." value={form.duration_text} onChange={e=>set('duration_text',e.target.value)} />
+            </div>
           </div>
-          {form.disease==='أخرى' && (
-            <input className="input mt-2" placeholder="اكتب اسم المرض..." value={form.disease_other} onChange={e=>set('disease_other',e.target.value)} required />
-          )}
         </div>
 
-        <div>
-          <label className="label">تاريخ العزل</label>
-          <input type="date" className="input" value={form.start_date} max={today} onChange={e=>set('start_date',e.target.value)} />
-        </div>
-
-        <div>
-          <label className="label">العلاج / الدواء</label>
-          <input className="input" placeholder="اسم الدواء أو طريقة العلاج..." value={form.treatment} onChange={e=>set('treatment',e.target.value)} />
-        </div>
-
-        <div>
-          <label className="label">المدة المتوقعة للعلاج</label>
-          <input className="input" placeholder="3 أيام، أسبوع، حتى التعافي..." value={form.duration_text} onChange={e=>set('duration_text',e.target.value)} />
-        </div>
-
-        <div className="flex gap-3">
-          <button type="submit" className="btn-primary flex-1" disabled={saving}>{saving?'⏳ جاري...':'💾 حفظ حالة العزل'}</button>
-          <button type="button" onClick={()=>router.back()} className="btn-secondary px-5">إلغاء</button>
+        <div style={{display:'flex',gap:10}}>
+          <button type="submit" disabled={saving}
+            style={{flex:1,background:'linear-gradient(135deg,#1d4ed8,#3b82f6)',color:'white',border:'none',borderRadius:14,padding:'14px',fontFamily:'inherit',fontSize:15,fontWeight:800,cursor:'pointer',boxShadow:'0 4px 14px rgba(29,78,216,0.3)',opacity:saving?0.7:1}}>
+            {saving?'⏳ جاري الحفظ...':'💾 حفظ حالة العزل'}
+          </button>
+          <button type="button" onClick={()=>router.back()}
+            style={{background:BDARK,border:'none',borderRadius:14,padding:'14px 20px',fontFamily:'inherit',fontSize:15,fontWeight:700,cursor:'pointer',color:'#374151'}}>
+            إلغاء
+          </button>
         </div>
       </form>
     </div>
