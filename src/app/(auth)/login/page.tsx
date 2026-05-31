@@ -4,6 +4,11 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 
+const G = '#1e5a10'
+const BEIGE = '#f8f4ee'
+const BDR = '#d8cfc3'
+const GOLD = '#c9a84c'
+
 export default function LoginPage() {
   const router = useRouter()
   const [email, setEmail] = useState('')
@@ -20,33 +25,43 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-beige-primary flex items-center justify-center p-4">
-      <div className="w-full max-w-sm">
-        <div className="text-center mb-8">
-          <div className="w-16 h-16 bg-green-primary rounded-2xl flex items-center justify-center mx-auto mb-3 text-3xl">🐑</div>
-          <h1 className="text-2xl font-black text-green-primary">المراح</h1>
-          <p className="text-sm text-gray-500">منصة إدارة المواشي</p>
+    <div style={{ minHeight:'100vh', background:BEIGE, display:'flex', alignItems:'center', justifyContent:'center', padding:16, fontFamily:'Tajawal,sans-serif', direction:'rtl' }}>
+      <div style={{ width:'100%', maxWidth:380 }}>
+        <div style={{ textAlign:'center', marginBottom:32 }}>
+          <div style={{ width:64, height:64, background:G, borderRadius:20, display:'flex', alignItems:'center', justifyContent:'center', margin:'0 auto 12px', fontSize:32 }}>🐑</div>
+          <h1 style={{ fontSize:24, fontWeight:900, color:G, margin:0 }}>المراح</h1>
+          <p style={{ fontSize:14, color:'#6b7280', margin:'4px 0 0' }}>منصة إدارة المواشي</p>
         </div>
-        <div className="card">
-          <h2 className="text-xl font-bold mb-6">تسجيل الدخول</h2>
-          {error && <div className="bg-red-50 border border-red-200 text-red-600 rounded-xl px-4 py-3 mb-4 text-sm">{error}</div>}
-          <form onSubmit={handleLogin} className="space-y-4">
+        <div style={{ background:'white', borderRadius:24, border:`1px solid ${BDR}`, padding:24, boxShadow:'0 1px 4px rgba(0,0,0,0.06)' }}>
+          <h2 style={{ fontSize:20, fontWeight:700, margin:'0 0 20px' }}>تسجيل الدخول</h2>
+          {error && (
+            <div style={{ background:'#fef2f2', border:'1px solid #fecaca', color:'#991b1b', borderRadius:12, padding:'12px 16px', marginBottom:16, fontSize:14 }}>
+              {error}
+            </div>
+          )}
+          <form onSubmit={handleLogin} style={{ display:'flex', flexDirection:'column', gap:16 }}>
             <div>
-              <label className="label">البريد الإلكتروني</label>
-              <input type="email" className="input" dir="ltr" value={email} onChange={e => setEmail(e.target.value)} required />
+              <label style={{ display:'block', fontSize:14, fontWeight:500, color:'#374151', marginBottom:6 }}>البريد الإلكتروني</label>
+              <input type="email" dir="ltr" value={email} onChange={e => setEmail(e.target.value)} required
+                style={{ width:'100%', background:BEIGE, border:`1px solid ${BDR}`, borderRadius:12, padding:'10px 16px', fontSize:14, outline:'none', boxSizing:'border-box' }}/>
             </div>
             <div>
-              <label className="label">كلمة المرور</label>
-              <input type="password" className="input" value={password} onChange={e => setPassword(e.target.value)} required />
+              <label style={{ display:'block', fontSize:14, fontWeight:500, color:'#374151', marginBottom:6 }}>كلمة المرور</label>
+              <input type="password" value={password} onChange={e => setPassword(e.target.value)} required
+                style={{ width:'100%', background:BEIGE, border:`1px solid ${BDR}`, borderRadius:12, padding:'10px 16px', fontSize:14, outline:'none', boxSizing:'border-box' }}/>
             </div>
-            <div className="flex justify-end">
-              <Link href="/forgot-password" className="text-sm text-green-primary hover:underline">نسيت كلمة المرور؟</Link>
+            <div style={{ textAlign:'left' }}>
+              <Link href="/forgot-password" style={{ fontSize:13, color:G, textDecoration:'none' }}>نسيت كلمة المرور؟</Link>
             </div>
-            <button type="submit" className="btn-primary w-full" disabled={loading}>{loading ? 'جاري الدخول...' : 'دخول'}</button>
+            <button type="submit" disabled={loading}
+              style={{ background:G, color:'white', border:'none', borderRadius:12, padding:'12px', fontSize:15, fontWeight:600, cursor:'pointer', opacity:loading?0.7:1 }}>
+              {loading ? 'جاري الدخول...' : 'دخول'}
+            </button>
           </form>
         </div>
-        <p className="text-center text-sm text-gray-500 mt-4">
-          ليس لديك حساب؟ <Link href="/register" className="text-green-primary font-medium">إنشاء حساب</Link>
+        <p style={{ textAlign:'center', fontSize:14, color:'#6b7280', marginTop:16 }}>
+          ليس لديك حساب؟{' '}
+          <Link href="/register" style={{ color:G, fontWeight:600, textDecoration:'none' }}>إنشاء حساب</Link>
         </p>
       </div>
     </div>
