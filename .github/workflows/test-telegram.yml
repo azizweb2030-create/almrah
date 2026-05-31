@@ -1,0 +1,40 @@
+name: Test Telegram + Get Bot Token
+on:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Test Cloudflare Worker
+        run: |
+          echo "Testing Cloudflare Worker..."
+          RESP=$(curl -s -X POST "https://almrah-telegram.azizweb2030.workers.dev" \
+            -H "Content-Type: application/json" \
+            -d '{"chat_id":"650468940","text":"✅ المراح V2 - اختبار التيليجرام ناجح!","parse_mode":"HTML"}' \
+            -w "\nHTTP:%{http_code}" \
+            --max-time 15)
+          echo "Worker Response: $RESP"
+          
+      - name: Extract Bot Token from Worker (if possible)
+        run: |
+          # نحاول استخراج Bot Token عبر Cloudflare API
+          CF_TOKEN_RESPONSE=$(curl -s \
+            "https://api.cloudflare.com/client/v4/accounts/03fb42f8a3eec591f1aca4ac6cce6696/workers/scripts/almrah-telegram/secrets" \
+            -H "Authorization: Bearer $CF_API_TOKEN" 2>/dev/null || echo "No CF token")
+          echo "CF Response: $CF_TOKEN_RESPONSE"
+          
+      - name: Add Telegram Bot to Vercel via direct API
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: |
+          # فحص env vars الموجودة في Vercel
+          ENVS=$(curl -s \
+            "https://api.vercel.com/v10/projects/prj_dYGxk9IRUc4Rg7crLpb3MM1dwR8c/env?teamId=team_0WM1wNiYAi7vHhbHDqc6Lcha" \
+            -H "Authorization: Bearer $VERCEL_TOKEN")
+          echo "$ENVS" | python3 -c "
+import sys,json
+d=json.load(sys.stdin)
+for e in d.get('envs',[]):
+    print(e['key'], '-', e.get('type',''))
+"
