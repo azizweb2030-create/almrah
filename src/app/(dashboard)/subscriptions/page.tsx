@@ -88,7 +88,7 @@ export default function SubscriptionsPage() {
                 <p key={f} style={{margin:0,fontSize:12,color:'#374151'}}>{f}</p>
               ))}
             </div>
-            <button onClick={()=>toast.info('تواصل معنا على تيليجرام @almrah_support')}
+            <button onClick={()=>toast('تواصل معنا على تيليجرام @almrah_support')}
               style={{width:'100%',background:G,color:'white',border:'none',borderRadius:12,padding:'12px',fontFamily:'inherit',fontSize:14,fontWeight:700,cursor:'pointer'}}>
               اشترك الآن
             </button>
@@ -114,7 +114,7 @@ export default function SubscriptionsPage() {
                 <p key={f} style={{margin:0,fontSize:12,color:'#374151'}}>{f}</p>
               ))}
             </div>
-            <button onClick={()=>toast.info('تواصل معنا على تيليجرام @almrah_support')}
+            <button onClick={()=>toast('تواصل معنا على تيليجرام @almrah_support')}
               style={{width:'100%',background:`linear-gradient(135deg,${GOLDD},${GOLD})`,color:'white',border:'none',borderRadius:12,padding:'12px',fontFamily:'inherit',fontSize:14,fontWeight:700,cursor:'pointer',boxShadow:`0 4px 14px ${GOLD}55`}}>
               اشترك مدى الحياة
             </button>
