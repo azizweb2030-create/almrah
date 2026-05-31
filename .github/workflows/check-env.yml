@@ -1,0 +1,26 @@
+name: Check Missing Env Vars
+on: workflow_dispatch
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check all env vars
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: |
+          curl -s \
+            "https://api.vercel.com/v10/projects/prj_dYGxk9IRUc4Rg7crLpb3MM1dwR8c/env?teamId=team_0WM1wNiYAi7vHhbHDqc6Lcha" \
+            -H "Authorization: Bearer $VERCEL_TOKEN" | \
+            python3 -c "
+import sys,json
+d=json.load(sys.stdin)
+envs=d.get('envs',[])
+keys=[e['key'] for e in envs]
+required=['NEXT_PUBLIC_SUPABASE_URL','NEXT_PUBLIC_SUPABASE_ANON_KEY','ANTHROPIC_API_KEY','RESEND_API_KEY','TELEGRAM_BOT_TOKEN','NEXT_PUBLIC_APP_URL','FROM_EMAIL']
+print('=== EXISTING ===')
+for k in keys: print(' ✅',k)
+print()
+print('=== MISSING ===')
+for r in required:
+    if r not in keys: print(' ❌',r)
+"
