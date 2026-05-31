@@ -1,8 +1,10 @@
 'use client'
 import { useState, useEffect } from 'react'
 import { useRouter, useParams } from 'next/navigation'
-import { cn } from '@/lib/utils/cn'
 import toast from 'react-hot-toast'
+
+const G = '#1e5a10', GSUBT = '#e8f5e2', BEIGE = '#f8f4ee', BDR = '#d8cfc3', BDARK = '#ede7db'
+const GOLD = '#c9a84c', GOLDD = '#a8872e', GOLDS = '#fdf8ec'
 
 export default function BirthDetailPage() {
   const router = useRouter()
@@ -18,38 +20,41 @@ export default function BirthDetailPage() {
 
   async function toggleBreeding() {
     const newVal = !birth.in_breeding
-    // الكود الأصلي: canBreed = daysSinceBirth >= 15
     if (newVal && birth.birth_date) {
       const daysSince = Math.round((Date.now()-new Date(birth.birth_date).getTime())/(1000*60*60*24))
-      if (daysSince < 15) {
-        toast.error(`⚠️ يمكن تفعيل الشبك بعد ${15-daysSince} يوم (بعد 15 يوم من الولادة)`)
-        return
-      }
+      if (daysSince < 15) { toast.error(`يمكن تفعيل الشبك بعد ${15-daysSince} يوم`); return }
     }
     setSaving(true)
     const breedingDate = newVal ? new Date().toISOString().split('T')[0] : null
-    const res = await fetch(`/api/births/${id}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ in_breeding: newVal, breeding_date: breedingDate, hidden_from_home: newVal })
+    const res = await fetch(`/api/births/${id}`,{method:'PATCH',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({in_breeding:newVal,breeding_date:breedingDate,hidden_from_home:newVal})
     })
     const j = await res.json()
     if (j.error) { toast.error(j.error) }
-    else {
-      setBirth((p:any) => ({ ...p, in_breeding: newVal, breeding_date: breedingDate, hidden_from_home: newVal }))
-      toast.success(newVal ? '🔗 تم تفعيل شبك التلقيح' : 'تم إلغاء الشبك')
-    }
+    else { setBirth((p:any)=>({...p,in_breeding:newVal,breeding_date:breedingDate})); toast.success(newVal?'🔗 تم تفعيل الشبك':'تم إلغاء الشبك') }
     setSaving(false)
   }
 
   async function handleDelete() {
-    await fetch(`/api/births/${id}`, { method: 'DELETE' })
+    await fetch(`/api/births/${id}`,{method:'DELETE'})
     toast.success('تم الحذف')
     router.push('/births')
   }
 
-  if (loading) return <div className="space-y-4">{[...Array(3)].map((_,i)=><div key={i} className="skeleton h-20"/>)}</div>
-  if (!birth) return <div className="text-center py-20"><p className="text-gray-500">غير موجود</p><button onClick={()=>router.push('/births')} className="btn-primary mt-4">العودة</button></div>
+  const card: React.CSSProperties = {background:'white',borderRadius:20,border:`1px solid ${BDR}`,padding:16,boxShadow:'0 1px 4px rgba(0,0,0,0.05)'}
+
+  if (loading) return (
+    <div style={{display:'flex',flexDirection:'column',gap:12}}>
+      {[...Array(3)].map((_,i)=><div key={i} style={{height:90,borderRadius:20,background:'#e5e7eb',animation:'shimmer 1.5s infinite'}}/>)}
+    </div>
+  )
+  if (!birth) return (
+    <div style={{textAlign:'center',padding:'60px 20px'}}>
+      <p style={{fontSize:40,margin:'0 0 12px'}}>🔍</p>
+      <p style={{color:'#6b7280',marginBottom:16}}>السجل غير موجود</p>
+      <button onClick={()=>router.push('/births')} style={{background:G,color:'white',border:'none',borderRadius:12,padding:'10px 20px',fontFamily:'inherit',fontWeight:700,cursor:'pointer'}}>العودة</button>
+    </div>
+  )
 
   const alive = (birth.babies||[]).filter((b:any)=>b.health!=='نفوق').length
   const sick  = (birth.babies||[]).filter((b:any)=>b.health==='مريض').length
@@ -61,98 +66,104 @@ export default function BirthDetailPage() {
     ? (() => { const d=new Date(birth.breeding_date); d.setDate(d.getDate()+150); return d.toISOString().split('T')[0] })()
     : null
   const daysLeft = expectedBirth ? Math.ceil((new Date(expectedBirth).getTime()-Date.now())/(1000*60*60*24)) : null
-  const progress = daysLeft!==null ? Math.min(100, Math.max(0, ((150-(daysLeft))/150)*100)) : 0
+  const progress = daysLeft!==null ? Math.min(100,Math.max(0,((150-daysLeft)/150)*100)) : 0
 
   return (
-    <div className="max-w-lg mx-auto space-y-4">
-      <div className="page-header">
-        <button onClick={()=>router.push('/births')} className="text-gray-500 text-sm">→ رجوع</button>
-        <h1 className="page-title">🐑 الأم {birth.mom_id}</h1>
-        <div/>
+    <div style={{maxWidth:540,margin:'0 auto',display:'flex',flexDirection:'column',gap:14}}>
+
+      {/* Header */}
+      <div style={{display:'flex',alignItems:'center',gap:12}}>
+        <button onClick={()=>router.push('/births')} style={{background:BDARK,border:'none',borderRadius:10,width:36,height:36,cursor:'pointer',fontSize:18,display:'flex',alignItems:'center',justifyContent:'center'}}>←</button>
+        <div style={{flex:1}}>
+          <h1 style={{fontSize:20,fontWeight:900,color:G,margin:0}}>الأم {birth.mom_id}</h1>
+          <p style={{fontSize:12,color:'#9ca3af',margin:'2px 0 0'}}>{birth.birth_date}</p>
+        </div>
+        {birth.in_breeding && <span style={{background:GOLDS,color:GOLDD,padding:'4px 12px',borderRadius:100,fontSize:12,fontWeight:700}}>🔗 شبك</span>}
       </div>
 
       {/* بيانات الأم */}
-      <div className="card space-y-3">
-        <div className="grid grid-cols-2 gap-3">
+      <div style={card}>
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}}>
           {[
             {l:'رقم الأم', v:birth.mom_id},
             {l:'اللون', v:birth.mom_color||'—'},
             {l:'تاريخ الولادة', v:birth.birth_date},
-            {l:'المواليد', v:`${alive} حي · ${sick} مريض · ${dead} نفوق`},
+            {l:'المواليد', v:`${alive} حي · ${sick>0?`${sick} مريض · `:''}${dead>0?`${dead} نفوق`:''}`.replace(/ · $/,'')},
           ].map(item=>(
-            <div key={item.l} className="bg-beige-primary rounded-xl p-3">
-              <p className="text-xs text-gray-500">{item.l}</p>
-              <p className="font-semibold text-sm">{item.v}</p>
+            <div key={item.l} style={{background:BEIGE,borderRadius:12,padding:'10px 12px'}}>
+              <p style={{margin:0,fontSize:11,color:'#9ca3af'}}>{item.l}</p>
+              <p style={{margin:'3px 0 0',fontWeight:700,fontSize:14}}>{item.v}</p>
             </div>
           ))}
         </div>
         {birth.meds && birth.meds.length>0 && (
-          <div className="flex flex-wrap gap-1.5">
-            <span className="text-xs text-gray-500 mt-0.5">الأدوية:</span>
-            {birth.meds.map((m:string,i:number)=><span key={i} className="badge badge-gray text-xs">{m}</span>)}
+          <div style={{display:'flex',gap:6,flexWrap:'wrap',marginTop:10}}>
+            <span style={{fontSize:11,color:'#9ca3af'}}>الأدوية:</span>
+            {birth.meds.map((m:string,i:number)=>(
+              <span key={i} style={{background:'#f3f4f6',color:'#6b7280',padding:'2px 8px',borderRadius:100,fontSize:11,fontWeight:600}}>{m}</span>
+            ))}
           </div>
         )}
-        {daysSince!==null && (
-          <p className="text-xs text-gray-400">منذ {daysSince} يوم من الولادة</p>
-        )}
+        {daysSince!==null && <p style={{fontSize:11,color:'#9ca3af',margin:'8px 0 0'}}>منذ {daysSince} يوم</p>}
       </div>
 
       {/* شبك التلقيح */}
-      <div className={cn('card', birth.in_breeding?'border-[#c9a84c]/50':'')}>
-        <div className="flex items-center justify-between mb-3">
+      <div style={{...card,borderColor:birth.in_breeding?`${GOLD}55`:BDR,background:birth.in_breeding?GOLDS:'white'}}>
+        <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:birth.in_breeding?12:0}}>
           <div>
-            <h2 className="font-bold text-sm">🔗 شبك التلقيح</h2>
-            {birth.breeding_date && <p className="text-xs text-gray-500">بدأ: {birth.breeding_date}</p>}
+            <h2 style={{margin:0,fontWeight:800,fontSize:14,color:birth.in_breeding?GOLDD:'#374151'}}>🔗 شبك التلقيح</h2>
+            {birth.breeding_date && <p style={{margin:'3px 0 0',fontSize:11,color:'#9ca3af'}}>بدأ: {birth.breeding_date}</p>}
           </div>
-          <button onClick={toggleBreeding} disabled={saving}
-            className={cn('px-3 py-1.5 rounded-xl text-sm font-medium transition-colors',
-              birth.in_breeding?'bg-red-50 text-red-600 hover:bg-red-100':
-              canBreed?'btn-primary':'bg-gray-100 text-gray-400 cursor-not-allowed')}>
-            {saving?'⏳...':birth.in_breeding?'إلغاء الشبك':canBreed?'🔗 تفعيل الشبك':'⏳ '+(15-(daysSince||0))+' يوم'}
+          <button onClick={toggleBreeding} disabled={saving||(!birth.in_breeding&&!canBreed)}
+            style={{padding:'8px 14px',borderRadius:12,border:'none',fontFamily:'inherit',fontSize:13,fontWeight:700,cursor:saving||(!birth.in_breeding&&!canBreed)?'not-allowed':'pointer',opacity:saving?0.7:1,
+              background:birth.in_breeding?'#fef2f2':canBreed?G:'#f3f4f6',
+              color:birth.in_breeding?'#dc2626':canBreed?'white':'#9ca3af'
+            }}>
+            {saving?'⏳':birth.in_breeding?'إلغاء الشبك':canBreed?'🔗 تفعيل':'⏳ '+(15-(daysSince||0))+' يوم'}
           </button>
         </div>
         {birth.in_breeding && expectedBirth && daysLeft!==null && (
-          <div className="space-y-2">
-            <div className="flex justify-between text-sm">
-              <span className="text-gray-500">الولادة المتوقعة: {expectedBirth}</span>
-              <span className={cn('font-bold', daysLeft<0?'text-red-600':daysLeft<=14?'text-[#c9a84c]':'text-green-primary')}>
+          <div>
+            <div style={{display:'flex',justifyContent:'space-between',fontSize:12,marginBottom:8}}>
+              <span style={{color:'#6b7280'}}>الولادة المتوقعة: {expectedBirth}</span>
+              <span style={{fontWeight:700,color:daysLeft<0?'#dc2626':daysLeft<=14?GOLDD:G}}>
                 {daysLeft<0?`متأخرة ${Math.abs(daysLeft)} يوم`:`${daysLeft} يوم متبقٍ`}
               </span>
             </div>
-            <div className="h-2.5 bg-beige-border rounded-full overflow-hidden">
-              <div className="h-full bg-[#c9a84c] rounded-full transition-all" style={{width:`${progress}%`}}/>
+            <div style={{height:10,background:'#e5e7eb',borderRadius:100,overflow:'hidden'}}>
+              <div style={{height:'100%',background:GOLD,borderRadius:100,width:`${progress}%`,transition:'width .3s'}}/>
             </div>
           </div>
         )}
         {!birth.in_breeding && !canBreed && daysSince!==null && daysSince<15 && (
-          <p className="text-xs text-gray-400">يمكن تفعيل الشبك بعد {15-daysSince} يوم</p>
+          <p style={{fontSize:11,color:'#9ca3af',marginTop:8}}>يمكن تفعيل الشبك بعد {15-daysSince} يوم</p>
         )}
       </div>
 
       {/* المواليد */}
       {(birth.babies||[]).length>0 && (
-        <div className="card">
-          <h2 className="font-bold mb-3">🍼 المواليد ({(birth.babies||[]).length})</h2>
-          <div className="space-y-2">
+        <div style={card}>
+          <h2 style={{fontWeight:800,fontSize:14,margin:'0 0 12px'}}>🍼 المواليد ({(birth.babies||[]).length})</h2>
+          <div style={{display:'flex',flexDirection:'column',gap:8}}>
             {(birth.babies||[]).map((baby:any,i:number)=>{
               const isRakhl = baby.gender==='رخل'
+              const isDead = baby.health==='نفوق'
               return (
-                <div key={i} className={cn('flex items-center gap-3 p-3 rounded-xl',baby.health==='نفوق'?'bg-gray-100 opacity-50':'bg-beige-primary')}>
-                  <div className={cn('w-9 h-9 rounded-xl flex items-center justify-center text-sm font-bold flex-shrink-0',
-                    isRakhl?'bg-pink-100 text-pink-700':'bg-blue-100 text-blue-700')}>
-                    {isRakhl?'♀':'♂'}
+                <div key={i} style={{display:'flex',alignItems:'center',gap:12,padding:'10px 12px',borderRadius:14,background:isDead?'#f3f4f6':BEIGE,opacity:isDead?0.6:1}}>
+                  <div style={{width:38,height:38,borderRadius:10,display:'flex',alignItems:'center',justifyContent:'center',fontSize:18,flexShrink:0,background:isRakhl?'#fce7f3':'#eff6ff',fontWeight:900}}>
+                    {isDead?'💀':isRakhl?'🐑':'🐏'}
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-semibold text-sm">{baby.baby_id}</p>
-                    <p className="text-xs text-gray-500">{baby.gender} · {baby.color||'—'} · {baby.health}</p>
+                  <div style={{flex:1}}>
+                    <div style={{display:'flex',alignItems:'center',gap:6,marginBottom:2}}>
+                      <span style={{fontWeight:800,fontSize:14}}>{baby.baby_id}</span>
+                      {baby.stage && (
+                        <span style={{background:baby.stage==='جاهز للإنتاج'?GSUBT:baby.stage==='مفطوم'?GOLDS:'#f3f4f6',color:baby.stage==='جاهز للإنتاج'?G:baby.stage==='مفطوم'?GOLDD:'#6b7280',padding:'1px 7px',borderRadius:100,fontSize:10,fontWeight:700}}>
+                          {baby.stage}
+                        </span>
+                      )}
+                    </div>
+                    <p style={{margin:0,fontSize:11,color:'#9ca3af'}}>{baby.gender} · {baby.color||'—'} · {baby.health}</p>
                   </div>
-                  {baby.stage && (
-                    <span className={cn('badge text-xs flex-shrink-0',
-                      baby.stage==='جاهز للإنتاج'?'badge-green':
-                      baby.stage==='مفطوم'?'badge-gold':'badge-gray')}>
-                      {baby.stage}
-                    </span>
-                  )}
                 </div>
               )
             })}
@@ -161,15 +172,18 @@ export default function BirthDetailPage() {
       )}
 
       {/* حذف */}
-      <div className="card">
-        {!confirm?(
-          <button onClick={()=>setConfirm(true)} className="w-full text-red-500 text-sm py-1.5 hover:text-red-700">🗑 حذف هذا السجل</button>
-        ):(
-          <div className="space-y-2">
-            <p className="text-sm text-center text-red-600 font-medium">هل أنت متأكد من الحذف؟</p>
-            <div className="flex gap-2">
-              <button onClick={handleDelete} className="btn-danger flex-1 text-sm">تأكيد</button>
-              <button onClick={()=>setConfirm(false)} className="btn-secondary flex-1 text-sm">إلغاء</button>
+      <div style={card}>
+        {!confirm ? (
+          <button onClick={()=>setConfirm(true)}
+            style={{width:'100%',background:'none',border:'none',color:'#dc2626',fontFamily:'inherit',fontSize:13,fontWeight:600,cursor:'pointer',padding:'8px'}}>
+            🗑 حذف هذا السجل
+          </button>
+        ) : (
+          <div>
+            <p style={{textAlign:'center',fontSize:13,color:'#dc2626',fontWeight:700,margin:'0 0 12px'}}>هل أنت متأكد من الحذف؟</p>
+            <div style={{display:'flex',gap:8}}>
+              <button onClick={handleDelete} style={{flex:1,background:'#dc2626',color:'white',border:'none',borderRadius:12,padding:'12px',fontFamily:'inherit',fontSize:14,fontWeight:700,cursor:'pointer'}}>تأكيد</button>
+              <button onClick={()=>setConfirm(false)} style={{flex:1,background:BDARK,border:'none',borderRadius:12,padding:'12px',fontFamily:'inherit',fontSize:14,fontWeight:700,cursor:'pointer',color:'#374151'}}>إلغاء</button>
             </div>
           </div>
         )}
