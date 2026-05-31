@@ -7,25 +7,19 @@ const SYSTEM_PROMPT = `أنت مساعد منصة "المراح" الذكي — 
 أقسام النظام:
 - الرئيسية: إحصائيات القطيع (إجمالي، منتجة، شبك التلقيح، بهم، رخال، خرفان، نفوق)
 - تسجيل الولادات: إضافة سجل ولادة جديد مع بيانات الأم ومواليدها
-- شبك التلقيح: تتبع الأمهات في فترة التلقيح — الأم تُضاف بعد 15 يوم من الولادة، الحمل 150 يوم
-- النفوق: تسجيل حالات النفوق تلقائياً يُخصم من الإجمالي
+- شبك التلقيح: الأم تُضاف بعد 15 يوم من الولادة، الحمل 150 يوم
+- النفوق: يُخصم تلقائياً من الإجمالي
 - البيطرة: العزل والمتابعة اليومية
 - التقارير: رسوم بيانية وتصدير PDF
-- الفحول: أرشيف الفحول في صفحة القطيع
-- البحث الموحد: أيقونة 🔍 في الأعلى
-- التنبيهات: أيقونة 🔔
+- البحث الموحد: أيقونة البحث في الأعلى
 
 مراحل المواليد:
-- البهم: 0-3 أشهر (رخل وخروف)
+- البهم: 0-3 أشهر
 - مفطومة: 3-7 أشهر (رخل فقط)
-- جاهزة للإنتاج: 7+ أشهر (رخل — تُضاف للإجمالي تلقائياً)
+- جاهز للإنتاج: 7+ أشهر (يُضاف للإجمالي تلقائياً)
 - جاهز للبيع: 3+ أشهر (خروف)
 
-قواعد صارمة:
-1. تحدث بالعربية فقط
-2. ردودك قصيرة وواضحة (نقاط أو أرقام)
-3. لا تكشف معلومات تقنية أو أكواد
-4. إذا السؤال خارج النظام: "أنا متخصص في شرح منصة المراح فقط"`
+قواعد: تحدث بالعربية فقط، ردودك مختصرة وواضحة، لا تكشف معلومات تقنية.`
 
 export async function POST(req: NextRequest) {
   try {
@@ -47,32 +41,29 @@ export async function POST(req: NextRequest) {
     const tokensLimit = profile?.ai_tokens_limit || 5000
 
     if (tokensUsed >= tokensLimit) {
-      return NextResponse.json({
-        error: 'تجاوزت حد التوكنات المسموح به، يرجى الترقية.'
-      }, { status: 429 })
+      return NextResponse.json({ error: 'تجاوزت حد التوكنات المسموح به.' }, { status: 429 })
     }
 
-    // بيانات القطيع للـ context
-    const { data: flock } = await supabase
-      .from('flock_data').select('total_sheep').eq('user_id', user.id).single()
-    const { count: birthsCount } = await supabase
-      .from('birth_records').select('*', { count: 'exact', head: true }).eq('user_id', user.id)
-    const { count: vetCount } = await supabase
-      .from('vet_isolation').select('*', { count: 'exact', head: true })
-      .eq('user_id', user.id).eq('active', true)
+    // بناء تاريخ المحادثة — Anthropic تشترط: يبدأ بـ user، ولا رسالتان متتاليتان بنفس الدور
+    const rawHistory: { role: 'user' | 'assistant'; content: string }[] = (messages || [])
+      .filter((m: any) => m.role === 'user' || m.role === 'assistant')
+      .map((m: any) => ({ role: m.role as 'user' | 'assistant', content: String(m.content || '') }))
+      .filter((m: { role: 'user' | 'assistant'; content: string }) => m.content.trim().length > 0)
 
-    const contextNote = flock
-      ? `\n\n[بيانات المزرعة: ${flock.total_sheep||0} رأس، ${birthsCount||0} ولادة، ${vetCount||0} حالة بيطرية]`
-      : ''
+    // إزالة الرسائل الأولى من نوع assistant (API لا تقبلها في البداية)
+    let trimmedHistory = rawHistory
+    while (trimmedHistory.length > 0 && trimmedHistory[0].role === 'assistant') {
+      trimmedHistory = trimmedHistory.slice(1)
+    }
 
-    const history = (messages || []).slice(-8).map((m: any) => ({
-      role: m.role === 'assistant' ? 'assistant' : 'user',
-      content: String(m.content)
-    }))
+    // الاحتفاظ بآخر 10 رسائل فقط لتوفير التوكنات
+    trimmedHistory = trimmedHistory.slice(-10)
+
+    // إضافة رسالة المستخدم الحالية
+    const finalMessages = [...trimmedHistory, { role: 'user' as const, content: message.trim() }]
 
     const maxTokens = profile?.economy_mode ? 400 : 800
 
-    // ✅ اسم الموديل الصحيح
     const apiKey = process.env.ANTHROPIC_API_KEY
     if (!apiKey) {
       return NextResponse.json({ error: 'مفتاح API غير مُهيَّأ' }, { status: 500 })
@@ -88,21 +79,21 @@ export async function POST(req: NextRequest) {
       body: JSON.stringify({
         model: 'claude-haiku-4-5-20251001',
         max_tokens: maxTokens,
-        system: SYSTEM_PROMPT + contextNote,
-        messages: [...history, { role: 'user', content: message.trim() }]
+        system: SYSTEM_PROMPT,
+        messages: finalMessages
       })
     })
 
     if (!res.ok) {
       const errBody = await res.json().catch(() => ({}))
-      console.error('[AI/chat] Anthropic error:', res.status, errBody)
+      console.error('[AI/chat] Anthropic error:', res.status, JSON.stringify(errBody))
       return NextResponse.json({
         error: `فشل الاتصال بالمساعد (خطأ ${res.status})، حاول مرة أخرى`
       }, { status: 500 })
     }
 
     const d = await res.json()
-    const text = d.content?.[0]?.text || ''
+    const text = d.content?.[0]?.text || 'لم أتمكن من توليد رد، حاول مرة أخرى'
     const tokens = (d.usage?.input_tokens || 0) + (d.usage?.output_tokens || 0)
 
     if (tokens > 0) {
